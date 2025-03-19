@@ -1,7 +1,7 @@
 name: "socket-proxy"
 services:
   socket-proxy:
-    image: "11notes/socket-proxy:ro"
+    image: "11notes/socket-proxy:1.0.0"
     network_mode: "none" # removes all network capabillities from the container
     volumes:
       - "/run/docker.sock:/run/docker.sock:ro" # mount host docker socket, the :ro does not mean read-only for the socket, just for the actual file
