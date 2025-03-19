@@ -49,6 +49,7 @@ func main(){
 		},
 	}
 
+	// drop privileges since only the proxy must access the socket as root and nothing else
 	if err := syscall.Setgid(1000); err != nil {
 		log.Fatalf("could not set GID to 1000 %v", err)
 	}
