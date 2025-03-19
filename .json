@@ -1,0 +1,18 @@
+{
+  "image":"11notes/socket-proxy",
+  "name":"socket-proxy",
+  "root":"/socket-proxy",
+  
+  "semver":{
+    "version":"1.0.0",
+    "stable":"1.0.0",
+    "latest":"1.0.0"
+  },
+
+  "readme":{
+    "description":"Access your docker socket safely as read-only",
+    "parent":{
+      "image":"11notes/alpine:stable"
+    }
+  }
+}

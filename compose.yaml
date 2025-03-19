@@ -1,0 +1,61 @@
+name: "socket-proxy"
+services:
+  socket-proxy:
+    image: "11notes/socket-proxy:ro"
+    network_mode: "none" # removes all network capabillities from the container
+    volumes:
+      - "/run/docker.sock:/run/docker.sock:ro" # mount host docker socket, the :ro does not mean read-only for the socket, just for the actual file
+      - "socket-proxy:/socket-proxy/run" # this socket is run as 1000:1000, not as root!
+    restart: "always"
+
+  traefik:
+    image: "11notes/traefik:3.2.0"
+    depends_on:
+      socket-proxy:
+        condition: "service_healthy"
+        restart: true
+    command:
+      - "--global.checkNewVersion=false"
+      - "--global.sendAnonymousUsage=false"
+      - "--api.dashboard=true"
+      - "--api.insecure=true"
+      - "--log.level=INFO"
+      - "--log.format=json"
+      - "--providers.docker.exposedByDefault=false" # use docker provider but do not expose by default
+      - "--entrypoints.http.address=:80"
+      - "--entrypoints.https.address=:443"
+      - "--serversTransport.insecureSkipVerify=true" # do not verify downstream SSL certificates
+    ports:
+      - "80:80/tcp"
+      - "443:443/tcp"
+      - "8080:8080/tcp"
+    networks:
+      frontend:
+      backend:
+    volumes:
+      - "socket-proxy:/var/run"
+    sysctls:
+      net.ipv4.ip_unprivileged_port_start: 80
+    restart: "always"
+
+  nginx:
+    image: "11notes/nginx:1.26.2"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.default.priority=1"
+      - "traefik.http.routers.default.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.default.entrypoints=http"
+      - "traefik.http.routers.default.service=default"
+      - "traefik.http.services.default.loadbalancer.server.port=8443"
+      - "traefik.http.services.default.loadbalancer.server.scheme=https" # proxy from http to https since this image runs by default on https
+    networks:
+      backend: # allow container only to be accessed via traefik
+    restart: "always"
+
+volumes:
+  socket-proxy:
+
+networks:
+  frontend:
+  backend:
+    internal: true
