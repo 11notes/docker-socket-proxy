@@ -101,7 +101,8 @@ networks:
 # PARENT IMAGE 🏛️
 * [11notes/alpine:stable](https://hub.docker.com/r/11notes/alpine)
 
-${{ content_built }}
+# BUILT WITH 🧰
+* [11notes/util](https://github.com/11notes/docker-util)
 
 # GENERAL TIPS 📌
 * Use a reverse proxy like Traefik, Nginx, HAproxy to terminate TLS and to protect your endpoints
@@ -110,4 +111,4 @@ ${{ content_built }}
 # ElevenNotes™️
 This image is provided to you at your own risk. Always make backups before updating an image to a different version. Check the [releases](https://github.com/11notes/docker-socket-proxy/releases) for breaking changes. If you have any problems with using this image simply raise an [issue](https://github.com/11notes/docker-socket-proxy/issues), thanks. If you have a question or inputs please create a new [discussion](https://github.com/11notes/docker-socket-proxy/discussions) instead of an issue. You can find all my other repositories on [github](https://github.com/11notes?tab=repositories).
 
-*created 20.3.2025, 00:29:52 (CET)*
+*created 20.03.2025, 00:39:59 (CET)*
