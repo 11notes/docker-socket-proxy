@@ -21,7 +21,6 @@ name: "socket-proxy"
 services:
   socket-proxy:
     image: "11notes/socket-proxy:1.0.0"
-    network_mode: "none" # removes all network capabillities from the container
     volumes:
       - "/run/docker.sock:/run/docker.sock:ro" # mount host docker socket, the :ro does not mean read-only for the socket, just for the actual file
       - "socket-proxy:/socket-proxy/run" # this socket is run as 1000:1000, not as root!
@@ -111,4 +110,4 @@ ${{ content_built }}
 # ElevenNotes™️
 This image is provided to you at your own risk. Always make backups before updating an image to a different version. Check the [releases](https://github.com/11notes/docker-socket-proxy/releases) for breaking changes. If you have any problems with using this image simply raise an [issue](https://github.com/11notes/docker-socket-proxy/issues), thanks. If you have a question or inputs please create a new [discussion](https://github.com/11notes/docker-socket-proxy/discussions) instead of an issue. You can find all my other repositories on [github](https://github.com/11notes?tab=repositories).
 
-*created 19.3.2025, 13:40:36 (CET)*
+*created 19.3.2025, 14:14:50 (CET)*
