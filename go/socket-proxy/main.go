@@ -11,6 +11,7 @@ import(
 	"os/signal"
 	"syscall"
 	"sync"
+	"regexp"
 )
 
 var(
@@ -28,11 +29,32 @@ func signals(){
 	}()
 }
 
+func httpProxyBlockedPaths(url string) bool {
+	blockedPatterns := []*regexp.Regexp{
+		regexp.MustCompile(`(?i)containers/\S+/attach/ws.*`), // could attach to stdin via web socket and issue command inside the container
+		regexp.MustCompile(`(?i)containers/\S+/export.*`), // could exfil container data
+		regexp.MustCompile(`(?i)containers/\S+/archive.*`), // could exfil container data
+		regexp.MustCompile(`(?i)secrets.*`), // could exfil credentials
+		regexp.MustCompile(`(?i)configs.*`), // could exfil credentials
+		regexp.MustCompile(`(?i)swarm/unlockkey.*`), // could exfil credentials
+		regexp.MustCompile(`(?i)images/get.*`), // could exfil container data
+	}
+
+	for _, pattern := range blockedPatterns {
+		if pattern.MatchString(url) {
+			return true
+		}
+	}
+	return false
+}
+
 func httpProxy(w http.ResponseWriter, r *http.Request){
-	if(r.Method == "GET"){
+	method := r.Method
+	url := r.URL.String()
+	if(method  == "GET" && !httpProxyBlockedPaths(url)){
 		proxy.ServeHTTP(w, r)
 	}else{
-		log.Printf("blocked: %s %s", r.Method, r.URL.String())
+		log.Printf("blocked: %s %s", method, url)
 		http.Error(w, "", http.StatusForbidden)  
 	}
 }
