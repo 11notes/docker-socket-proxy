@@ -1,14 +1,14 @@
 ![banner](https://github.com/11notes/defaults/blob/main/static/img/banner.png?raw=true)
 
 # ⛰️ socket-proxy
-[<img src="https://img.shields.io/badge/github-source-blue?logo=github&color=040308">](https://github.com/11notes/docker-socket-proxy)![size](https://img.shields.io/docker/image-size/11notes/socket-proxy/1.0.0?color=0eb305)![version](https://img.shields.io/docker/v/11notes/socket-proxy/1.0.0?color=eb7a09)![pulls](https://img.shields.io/docker/pulls/11notes/socket-proxy?color=2b75d6)[<img src="https://img.shields.io/github/issues/11notes/docker-socket-proxy?color=7842f5">](https://github.com/11notes/docker-socket-proxy/issues)
+[<img src="https://img.shields.io/badge/github-source-blue?logo=github&color=040308">](https://github.com/11notes/docker-socket-proxy)![size](https://img.shields.io/docker/image-size/11notes/socket-proxy/1.0.1?color=0eb305)![version](https://img.shields.io/docker/v/11notes/socket-proxy/1.0.1?color=eb7a09)![pulls](https://img.shields.io/docker/pulls/11notes/socket-proxy?color=2b75d6)[<img src="https://img.shields.io/github/issues/11notes/docker-socket-proxy?color=7842f5">](https://github.com/11notes/docker-socket-proxy/issues)
 
 Access your docker socket safely as read-only
 
 # MAIN TAGS 🏷️
 These are the main tags for the image. There is also a tag for each commit and its shorthand sha256 value.
 
-* [1.0.0](https://hub.docker.com/r/11notes/socket-proxy/tags?name=1.0.0)
+* [1.0.1](https://hub.docker.com/r/11notes/socket-proxy/tags?name=1.0.1)
 * [stable](https://hub.docker.com/r/11notes/socket-proxy/tags?name=stable)
 * [latest](https://hub.docker.com/r/11notes/socket-proxy/tags?name=latest)
 
@@ -20,7 +20,7 @@ These are the main tags for the image. There is also a tag for each commit and i
 name: "socket-proxy"
 services:
   socket-proxy:
-    image: "11notes/socket-proxy:1.0.0"
+    image: "11notes/socket-proxy:1.0.1"
     volumes:
       - "/run/docker.sock:/run/docker.sock:ro" # mount host docker socket, the :ro does not mean read-only for the socket, just for the actual file
       - "socket-proxy:/socket-proxy/run" # this socket is run as 1000:1000, not as root!
@@ -111,4 +111,4 @@ networks:
 # ElevenNotes™️
 This image is provided to you at your own risk. Always make backups before updating an image to a different version. Check the [releases](https://github.com/11notes/docker-socket-proxy/releases) for breaking changes. If you have any problems with using this image simply raise an [issue](https://github.com/11notes/docker-socket-proxy/issues), thanks. If you have a question or inputs please create a new [discussion](https://github.com/11notes/docker-socket-proxy/discussions) instead of an issue. You can find all my other repositories on [github](https://github.com/11notes?tab=repositories).
 
-*created 20.03.2025, 00:39:59 (CET)*
+*created 20.03.2025, 01:46:58 (CET)*
