@@ -4,9 +4,9 @@
   "root":"/socket-proxy",
   
   "semver":{
-    "version":"1.0.0",
-    "stable":"1.0.0",
-    "latest":"1.0.0"
+    "version":"1.0.1",
+    "stable":"1.0.1",
+    "latest":"1.0.1"
   },
 
   "readme":{
