@@ -297,7 +297,7 @@ jobs:
 
       - name: docker / push README.md to docker hub
         continue-on-error: true
-        if: steps.github-readme.outcome == 'success' && hashFiles('README.md') != ''
+        if: steps.github-readme.outcome == 'success' && hashFiles('README_DOCKER.md') != ''
         uses: christian-korneck/update-container-description-action@d36005551adeaba9698d8d67a296bd16fa91f8e8
         env:
           DOCKER_USER: 11notes
@@ -306,7 +306,7 @@ jobs:
           destination_container_repo: ${{ env.DOCKER_IMAGE_NAME }}
           provider: dockerhub
           short_description: ${{ env.DOCKER_IMAGE_DESCRIPTION }}
-          readme_file: 'README.md'
+          readme_file: 'README_DOCKER.md'
       
 
 
