@@ -1,7 +1,7 @@
 ![banner](https://github.com/11notes/defaults/blob/main/static/img/banner.png?raw=true)
 
-# 🇨🇭 SOCKET-PROXY
-[<img src="https://img.shields.io/badge/github-source-blue?logo=github&color=040308">](https://github.com/11notes/docker-SOCKET-PROXY)![size](https://img.shields.io/docker/image-size/11notes/socket-proxy/2.0.0?color=0eb305)![version](https://img.shields.io/docker/v/11notes/socket-proxy/2.0.0?color=eb7a09)![pulls](https://img.shields.io/docker/pulls/11notes/socket-proxy?color=2b75d6)[<img src="https://img.shields.io/github/issues/11notes/docker-SOCKET-PROXY?color=7842f5">](https://github.com/11notes/docker-SOCKET-PROXY/issues)
+# SOCKET-PROXY
+[<img src="https://img.shields.io/badge/github-source-blue?logo=github&color=040308">](https://github.com/11notes/docker-SOCKET-PROXY)![size](https://img.shields.io/docker/image-size/11notes/socket-proxy/2.0.0?color=0eb305)![version](https://img.shields.io/docker/v/11notes/socket-proxy/2.0.0?color=eb7a09)![pulls](https://img.shields.io/docker/pulls/11notes/socket-proxy?color=2b75d6)[<img src="https://img.shields.io/github/issues/11notes/docker-SOCKET-PROXY?color=7842f5">](https://github.com/11notes/docker-SOCKET-PROXY/issues)![swiss made](https://img.shields.io/badge/CH-Swiss_Made-DA291C)
 
 Access your docker socket safely as read-only, rootless and distroless
 
@@ -18,14 +18,15 @@ These are the main tags for the image. There is also a tag for each commit and i
 # UNIQUE VALUE PROPOSITION 💶
 **Why should I run this image and not the other image(s) that already exist?** Good question! All the other images on the market that do exactly the same don’t do or offer these options:
 
-* This image runs the proxy part as a specific UID/GID (not root), all other images run everything as root
-* This image uses a single binary, all other images use apps like Nginx or HAProxy (bloat)
-* This image has no shell since it is 100% distroless, all other images run on a distro like Debian or Alpine with full shell access (security)
-* This image does not ship with any CVE and is automatically maintained via CI/CD, all other images mostly have no CVE scanning or code quality tools in place
-* This image has no upstream dependencies, all other images have upstream dependencies
-* This image exposes the socket as a UNIX socket and TCP socket, all other images only expose it via a TCP socket
+> [!IMPORTANT]
+>* This image runs the proxy part as a specific UID/GID (not root), all other images run everything as root
+>* This image uses a single binary, all other images use apps like Nginx or HAProxy (bloat)
+>* This image has no shell since it is 100% distroless, all other images run on a distro like Debian or Alpine with full shell access (security)
+>* This image does not ship with any CVE and is automatically maintained via CI/CD, all other images mostly have no CVE scanning or code quality tools in place
+>* This image has no upstream dependencies, all other images have upstream dependencies
+>* This image exposes the socket as a UNIX socket and TCP socket, all other images only expose it via a TCP socket
 
-If you value security, simplicity and the ability to interact with the maintainer and developer of an image. Then using my images is a great start in the right direction.
+If you value security, simplicity and the ability to interact with the maintainer and developer of an image. Using my images is a great start in that direction.
 
 # COMPOSE ✂️
 ```yaml
@@ -111,10 +112,11 @@ networks:
 * [11notes/util](https://github.com/11notes/docker-util)
 
 # GENERAL TIPS 📌
-* Use a reverse proxy like Traefik, Nginx, HAproxy to terminate TLS and to protect your endpoints
-* Use Let’s Encrypt DNS-01 challenge to obtain valid SSL certificates for your services
+> [!TIP]
+>* Use a reverse proxy like Traefik, Nginx, HAproxy to terminate TLS and to protect your endpoints
+>* Use Let’s Encrypt DNS-01 challenge to obtain valid SSL certificates for your services
 
 # ElevenNotes™️
 This image is provided to you at your own risk. Always make backups before updating an image to a different version. Check the [releases](https://github.com/11notes/docker-socket-proxy/releases) for breaking changes. If you have any problems with using this image simply raise an [issue](https://github.com/11notes/docker-socket-proxy/issues), thanks. If you have a question or inputs please create a new [discussion](https://github.com/11notes/docker-socket-proxy/discussions) instead of an issue. You can find all my other repositories on [github](https://github.com/11notes?tab=repositories).
 
-*created 24.03.2025, 09:25:13 (CET)*
+*created 24.03.2025, 11:37:38 (CET)*
