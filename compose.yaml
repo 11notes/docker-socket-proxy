@@ -1,10 +1,10 @@
-name: "socket-proxy"
+name: "traefik" # this is a compose example for Traefik
 services:
   socket-proxy:
-    image: "11notes/socket-proxy:1.0.0"
+    image: "11notes/socket-proxy:2.0.0"
     volumes:
       - "/run/docker.sock:/run/docker.sock:ro" # mount host docker socket, the :ro does not mean read-only for the socket, just for the actual file
-      - "socket-proxy:/socket-proxy/run" # this socket is run as 1000:1000, not as root!
+      - "socket-proxy:/run/proxy" # this socket is run as 1000:1000, not as root!
     restart: "always"
 
   traefik:
@@ -37,7 +37,7 @@ services:
       net.ipv4.ip_unprivileged_port_start: 80
     restart: "always"
 
-  nginx:
+  nginx: # example container
     image: "11notes/nginx:1.26.2"
     labels:
       - "traefik.enable=true"

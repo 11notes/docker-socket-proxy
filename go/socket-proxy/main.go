@@ -12,12 +12,15 @@ import(
 	"syscall"
 	"sync"
 	"regexp"
+	"strconv"
+	"flag"
 )
 
 var(
 	proxy *httputil.ReverseProxy
 	socket net.Listener
 	wg sync.WaitGroup
+	socketProxy string
 )
 
 func signals(){
@@ -29,7 +32,35 @@ func signals(){
 	}()
 }
 
+func prepareFileSystemDropPrivileges(){
+	// unprivileged user
+	proxyUID, err := strconv.Atoi(os.Getenv("SOCKET_PROXY_UID"))
+	if err != nil {
+		log.Fatalf("SOCKET_PROXY_UID must be a number %v", err)
+	}
+	proxyGID, err := strconv.Atoi(os.Getenv("SOCKET_PROXY_GID"))
+	if err != nil {
+		log.Fatalf("SOCKET_PROXY_GID must be a number %v", err)
+	}
+	proxyVolume := regexp.MustCompile(`/+$`).ReplaceAllString(os.Getenv("SOCKET_PROXY_VOLUME"), "")
+
+	// chown file system for unprivileged user	
+	if err := os.Chown(proxyVolume, proxyUID , proxyGID); err != nil {
+		log.Fatalf("could not chown folder %s", proxyVolume, err)
+	}
+
+	// drop privileges since only the proxy must access the socket as root and nothing else
+	if err := syscall.Setgid(proxyGID); err != nil {
+		log.Fatalf("could not set GID to %d %v", proxyGID, err)
+	}
+
+	if err := syscall.Setuid(proxyUID); err != nil {
+		log.Fatalf("could not set UID to %d %v", proxyUID, err)
+	}
+}
+
 func httpProxyBlockedPaths(url string) bool {
+	// block paths that use GET but pose security risk
 	blockedPatterns := []*regexp.Regexp{
 		regexp.MustCompile(`(?i)containers/\S+/attach/ws.*`), // could attach to stdin via web socket and issue command inside the container
 		regexp.MustCompile(`(?i)containers/\S+/export.*`), // could exfil container data
@@ -60,54 +91,70 @@ func httpProxy(w http.ResponseWriter, r *http.Request){
 }
 
 func main(){
-	signals()
+	// set socket proxy file path
+	socketProxy = regexp.MustCompile(`/+$`).ReplaceAllString(os.Getenv("SOCKET_PROXY_VOLUME"), "") + "/docker.sock"
 
-	// setup proxy to docker socket
-	localhost, _ := url.Parse("http://localhost")
-	proxy = httputil.NewSingleHostReverseProxy(localhost)
-	proxy.Transport = &http.Transport{
-		DialContext: func(_ context.Context, _, _ string)(net.Conn, error){
-			return net.Dial("unix", os.Getenv("SOCKET_PROXY_DOCKER_SOCKET"))
-		},
-	}
+	// check for command line flags
+	healthCheckFlag := flag.Bool("healthcheck", false, "just run healthcheck")
+	flag.Parse()
 
-	// drop privileges since only the proxy must access the socket as root and nothing else
-	if err := syscall.Setgid(1000); err != nil {
-		log.Fatalf("could not set GID to 1000 %v", err)
-	}
+	if(*healthCheckFlag){
+		// only run healthcheck
+		_, err := net.Dial("unix", socketProxy)
+		if err != nil {
+			os.Exit(1)
+		}
+		os.Exit(0)
+	}else{
+		// setup signal handler
+		signals()
 
-	if err := syscall.Setuid(1000); err != nil {
-		log.Fatalf("could not set UID to 1000 %v", err)
-	}
+		// setup proxy to docker socket as root
+		localhost, _ := url.Parse("http://localhost")
+		proxy = httputil.NewSingleHostReverseProxy(localhost)
+		proxy.Transport = &http.Transport{
+			DialContext: func(_ context.Context, _, _ string)(net.Conn, error){
+				return net.Dial("unix", os.Getenv("SOCKET_PROXY_DOCKER_SOCKET"))
+			},
+		}
 
-	wg.Add(2)
+		// prepare the file system and drop privileges to UID/GID
+		prepareFileSystemDropPrivileges()
 
-	// setup unix to socket proxy
-	serverUnix := &http.Server{
-		Handler: http.HandlerFunc(httpProxy),
-	}
+		wg.Add(2)
 
-	os.Remove(os.Getenv("SOCKET_PROXY"))
-	unix, _ := net.Listen("unix", os.Getenv("SOCKET_PROXY"))
-	go func(){
-		defer wg.Done()
-		if err := serverUnix.Serve(unix); err != nil {
+		// setup unix to socket proxy
+		serverUnix := &http.Server{
+			Handler: http.HandlerFunc(httpProxy),
+		}
+		os.Remove(socketProxy)
+		unix, err := net.Listen("unix", socketProxy)
+		if err != nil {
 			log.Fatalf("could not start unix socket %v", err)
 		}
-	}()
+		go func(){
+			defer wg.Done()
+			if err := serverUnix.Serve(unix); err != nil {
+				log.Fatalf("could not start unix socket %v", err)
+			}
+		}()
 
-	// setup http to socket proxy
-	httpServer := &http.Server{
-		Handler: http.HandlerFunc(httpProxy),
-	}
+		// setup http to socket proxy
+		httpServer := &http.Server{
+			Handler: http.HandlerFunc(httpProxy),
+		}
 
-	tcp, _ := net.Listen("tcp", "0.0.0.0:8080")
-	go func(){
-		defer wg.Done()
-		if err := httpServer.Serve(tcp); err != nil {
+		tcp, err := net.Listen("tcp", "0.0.0.0:2375")
+		if err != nil {
 			log.Fatalf("could not start tcp socket %v", err)
 		}
-	}()
+		go func(){
+			defer wg.Done()
+			if err := httpServer.Serve(tcp); err != nil {
+				log.Fatalf("could not start tcp socket %v", err)
+			}
+		}()
 
-	wg.Wait()
+		wg.Wait()
+	}
 }

@@ -1,8 +1,16 @@
-# :: Util
-  FROM 11notes/util AS util
+# :: Distroless
+  FROM alpine AS fs
+  USER root
+  RUN set -ex; \
+    mkdir -p /rootfs/run/proxy; \
+    mkdir -p /rootfs/etc; \
+    echo "root:x:0:0:root:/root:/bin/sh" > /rootfs/etc/passwd; \
+    echo "root:x:0:root" > /rootfs/etc/group;
 
-# :: Build
-  FROM golang:1.24-alpine AS build
+# :: Build // socket-proxy
+  FROM golang:1.24-alpine AS socket-proxy
+  ARG TARGETARCH
+  USER root
   COPY ./go/ /go
   RUN set -ex; \
     cd /go/socket-proxy; \
@@ -10,7 +18,7 @@
     mv socket-proxy /usr/local/bin/socket-proxy;
 
 # :: Header
-  FROM 11notes/alpine:stable
+  FROM scratch
 
   # :: arguments
     ARG TARGETARCH
@@ -27,30 +35,18 @@
     ENV APP_VERSION=${APP_VERSION}
     ENV APP_ROOT=${APP_ROOT}
 
-    ENV SOCKET_PROXY="${APP_ROOT}/run/docker.sock"
+    ENV SOCKET_PROXY_VOLUME="/run/proxy"
     ENV SOCKET_PROXY_DOCKER_SOCKET="/run/docker.sock"
+    ENV SOCKET_PROXY_UID=1000
+    ENV SOCKET_PROXY_GID=1000
 
   # :: multi-stage
-    COPY --from=util /usr/local/bin/ /usr/local/bin
-    COPY --from=build /usr/local/bin/ /usr/local/bin
-
-# :: Run
-  USER root
-  RUN eleven printenv;
-
-  # :: install application
-    RUN set -ex; \
-      eleven mkdir ${APP_ROOT}/{etc,run};
-
-  # :: copy filesystem changes and set correct permissions
-    COPY ./rootfs /
-    RUN set -ex; \
-      chmod +x -R /usr/local/bin; \
-      chown -R 1000:1000 \
-        ${APP_ROOT}
+    COPY --from=fs /rootfs/ /
+    COPY --from=socket-proxy /usr/local/bin/socket-proxy /
 
 # :: Monitor
-  HEALTHCHECK --interval=5s --timeout=2s CMD curl --unix-socket ${SOCKET_PROXY} http://localhost/version || exit 1
+  HEALTHCHECK --interval=5s --timeout=2s CMD ["/socket-proxy", "--healthcheck"]
 
 # :: Start
   USER root
+  ENTRYPOINT ["/socket-proxy"]

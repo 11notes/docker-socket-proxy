@@ -1,18 +1,19 @@
 {
   "image":"11notes/socket-proxy",
   "name":"socket-proxy",
-  "root":"/socket-proxy",
+  "root":"/",
   
   "semver":{
-    "version":"1.0.1",
-    "stable":"1.0.1",
-    "latest":"1.0.1"
+    "version":"2.0.0",
+    "stable":"2.0.0",
+    "latest":"2.0.0"
   },
 
   "readme":{
-    "description":"Access your docker socket safely as read-only",
+    "description":"Access your docker socket safely as read-only, rootless and distroless",
     "parent":{
-      "image":"11notes/alpine:stable"
-    }
+      "image":"scratch"
+    },
+    "distroless":true
   }
 }
