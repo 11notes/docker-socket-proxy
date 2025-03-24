@@ -106,10 +106,10 @@ networks:
 * [11notes/socket-proxy](https://github.com/11notes/docker-SOCKET-PROXY)
 
 # PARENT IMAGE 🏛️
-* [scratch](https://hub.docker.com/_/scratch)
+> [!IMPORTANT]
+This image is not based on another image but uses [scratch](https://hub.docker.com/_/scratch) as the starting layer. It is distroless and contains no shell or any other tools that could be a potential attack vector.
 
-# BUILT WITH 🧰
-* [11notes/util](https://github.com/11notes/docker-util)
+
 
 # GENERAL TIPS 📌
 > [!TIP]
@@ -119,4 +119,4 @@ networks:
 # ElevenNotes™️
 This image is provided to you at your own risk. Always make backups before updating an image to a different version. Check the [releases](https://github.com/11notes/docker-socket-proxy/releases) for breaking changes. If you have any problems with using this image simply raise an [issue](https://github.com/11notes/docker-socket-proxy/issues), thanks. If you have a question or inputs please create a new [discussion](https://github.com/11notes/docker-socket-proxy/discussions) instead of an issue. You can find all my other repositories on [github](https://github.com/11notes?tab=repositories).
 
-*created 24.03.2025, 13:18:38 (CET)*
+*created 24.03.2025, 13:29:58 (CET)*
