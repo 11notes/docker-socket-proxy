@@ -1,4 +1,12 @@
-${{ content_synopsis }} This image will run a proxy to access your docker socket as read-only. The exposed proxy socket is run as 1000:1000, not as root, although the image starts the proxy process as root to interact with the actual docker socket. There is also a TCP endpoint started at 2375 that will also proxy to the actual docker socket if needed. It is not exposed by default and must be exposed via using ```- "2375:2375/tcp"``` in your compose.
+${{ content_synopsis }} This image will run a proxy to access your docker socket as read-only. The exposed proxy socket is run as 1000:1000, not as root, although the image starts the proxy process as root to interact with the actual docker socket. There is also a TCP endpoint started at 2375 that will also proxy to the actual docker socket if needed. It is not exposed by default and must be exposed via using ```- "2375:2375/tcp"``` in your compose. Make sure that the docker socket is accessible by the ```user:``` specification in your compose, if the UID/GID are not correct, the image will print out the correct UID/GID for you to set:
+
+```shell
+socket-proxy-1  | 2025/03/26 10:16:33 can’t access docker socket as GID 0 owned by GID 991
+socket-proxy-1  | please change the user setting in your compose to the correct UID/GID pair like this:
+socket-proxy-1  | services:
+socket-proxy-1  |   socket-proxy:
+socket-proxy-1  |     user: "0:991"
+```
 
 ${{ content_uvp }} Good question! All the other images on the market that do exactly the same don’t do or offer these options:
 

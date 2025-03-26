@@ -48,5 +48,4 @@
   HEALTHCHECK --interval=5s --timeout=2s CMD ["/socket-proxy", "--healthcheck"]
 
 # :: Start
-  USER root
   ENTRYPOINT ["/socket-proxy"]

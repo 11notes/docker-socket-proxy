@@ -49,6 +49,23 @@ func prepareFileSystemDropPrivileges(){
 		log.Fatalf("could not chown folder %s", proxyVolume, err)
 	}
 
+	// check docker socket permissions
+	stat, err := os.Stat(os.Getenv("SOCKET_PROXY_DOCKER_SOCKET"))
+	if err != nil {
+		log.Fatalf("could not evaluate ownership of docker socket, permission issue %v", err)
+	}
+	if ownership, ok := stat.Sys().(*syscall.Stat_t); !ok {
+		log.Fatalf("could not evaluate ownership of docker socket, permission issue %v", err)
+	}else{
+		if(int(ownership.Uid) != os.Getuid()){
+			log.Fatalf("can’t access docker socket as UID %d owned by UID %d\nplease change the user setting in your compose to the correct UID/GID pair like this:\nservices:\n  socket-proxy:\n    user: \"%d:%d\"", os.Getuid(), ownership.Uid, ownership.Uid, ownership.Gid)
+		}else{
+			if(int(ownership.Gid) != os.Getgid()){
+				log.Fatalf("can’t access docker socket as GID %d owned by GID %d\nplease change the user setting in your compose to the correct UID/GID pair like this:\nservices:\n  socket-proxy:\n    user: \"%d:%d\"", os.Getgid(), ownership.Gid, os.Getuid(), ownership.Gid)
+			}
+		}
+	}
+
 	// drop privileges since only the proxy must access the socket as root and nothing else
 	if err := syscall.Setgid(proxyGID); err != nil {
 		log.Fatalf("could not set GID to %d %v", proxyGID, err)
@@ -106,6 +123,7 @@ func main(){
 		}
 		os.Exit(0)
 	}else{
+		log.Println("starting ...")
 		// setup signal handler
 		signals()
 
@@ -114,6 +132,7 @@ func main(){
 		proxy = httputil.NewSingleHostReverseProxy(localhost)
 		proxy.Transport = &http.Transport{
 			DialContext: func(_ context.Context, _, _ string)(net.Conn, error){
+				log.Println("starting proxy to docker socket ...")
 				return net.Dial("unix", os.Getenv("SOCKET_PROXY_DOCKER_SOCKET"))
 			},
 		}
@@ -121,10 +140,8 @@ func main(){
 		// prepare the file system and drop privileges to UID/GID
 		prepareFileSystemDropPrivileges()
 
-		wg.Add(2)
-
 		// setup unix to socket proxy
-		serverUnix := &http.Server{
+		unixServer := &http.Server{
 			Handler: http.HandlerFunc(httpProxy),
 		}
 		os.Remove(socketProxy)
@@ -132,9 +149,11 @@ func main(){
 		if err != nil {
 			log.Fatalf("could not start unix socket %v", err)
 		}
+		wg.Add(1)
 		go func(){
 			defer wg.Done()
-			if err := serverUnix.Serve(unix); err != nil {
+			log.Println("starting proxy UNIX socket ...")
+			if err := unixServer.Serve(unix); err != nil {
 				log.Fatalf("could not start unix socket %v", err)
 			}
 		}()
@@ -148,8 +167,10 @@ func main(){
 		if err != nil {
 			log.Fatalf("could not start tcp socket %v", err)
 		}
+		wg.Add(1)
 		go func(){
 			defer wg.Done()
+			log.Println("starting proxy TCP socket ...")
 			if err := httpServer.Serve(tcp); err != nil {
 				log.Fatalf("could not start tcp socket %v", err)
 			}

@@ -250,6 +250,12 @@ jobs:
         if: env.WORKFLOW_CREATE_RELEASE == 'true'  && steps.git-log.outcome == 'success'
         id: git-release
         uses: 11notes/action-docker-release@v1
+        # WHY IS THIS ACTION NOT SHA256 PINNED? SECURITY MUCH?!?!?!
+        # ---------------------------------------------------------------------------------
+        # the next step "github / release / create" creates a new release based on the code
+        # in the repo. This code is not modified and can't be modified by this action.
+        # It does create the markdown for the release, which could be abused, but to what
+        # extend? Adding a link to a malicious repo?
         with:
           git_log: ${{ steps.git-log.outputs.commits }}
 
@@ -267,6 +273,31 @@ jobs:
 
 
 
+
+      # LICENSE
+      - name: license / update year
+        continue-on-error: true
+        uses: actions/github-script@62c3794a3eb6788d9a2a72b219504732c0c9a298
+        with:
+          script: |
+            const { existsSync, readFileSync } = require('node:fs');
+            const { resolve } = require('node:path');
+            const file = 'LICENSE';
+            try{
+              const path = resolve(file );
+              if(existsSync(path)){
+                let license = readFileSync(file).toString();
+                license = license.replace(/Copyright \(c\) \d{4} /i, `Copyright (c) ${new Date().getFullYear()} `)
+              }else{
+                throw new Error(`file ${file} does not exist`);
+              }
+            }catch(e){
+              core.setFailed(e);
+            }
+
+
+
+
       # README
       - name: github / checkout master
         continue-on-error: true
@@ -278,6 +309,13 @@ jobs:
         continue-on-error: true
         if: env.WORKFLOW_CREATE_README == 'true' && steps.docker-build.outcome == 'success'
         uses: 11notes/action-docker-readme@v1
+        # WHY IS THIS ACTION NOT SHA256 PINNED? SECURITY MUCH?!?!?!
+        # ---------------------------------------------------------------------------------
+        # the next step "github / commit & push" only adds the README and LICENSE as well as 
+        # compose.yaml to the repository. This does not pose a security risk if this action
+        # would be compromised. The code of the app can't be changed by this action. Since
+        # only the files mentioned are commited to the repo. Sure, someone could make a bad
+        # compose.yaml, but since this serves only as an example I see no harm in that.
         with:
           sarif_file: ${{ steps.grype.outputs.sarif }}
           build_output_metadata: ${{ steps.docker-build.outputs.metadata }}
@@ -291,6 +329,9 @@ jobs:
           git add README.md
           if [ -f compose.yaml ]; then
             git add compose.yaml
+          fi
+          if [ -f LICENSE ]; then
+            git add LICENSE
           fi
           git commit -m "auto update README.md"
           git push
@@ -307,7 +348,8 @@ jobs:
           provider: dockerhub
           short_description: ${{ env.DOCKER_IMAGE_DESCRIPTION }}
           readme_file: 'README_DOCKER.md'
-      
+
+
 
 
       # REPOSITORY SETTINGS
