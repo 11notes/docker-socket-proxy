@@ -288,7 +288,7 @@ jobs:
               if(existsSync(path)){
                 let license = readFileSync(file).toString();
                 license = license.replace(/Copyright \(c\) \d{4} /i, `Copyright (c) ${new Date().getFullYear()} `);
-                writeFileSync(license, path);
+                writeFileSync(path, license);
               }else{
                 throw new Error(`file ${file} does not exist`);
               }
