@@ -280,14 +280,15 @@ jobs:
         uses: actions/github-script@62c3794a3eb6788d9a2a72b219504732c0c9a298
         with:
           script: |
-            const { existsSync, readFileSync } = require('node:fs');
+            const { existsSync, readFileSync, writeFileSync } = require('node:fs');
             const { resolve } = require('node:path');
             const file = 'LICENSE';
             try{
-              const path = resolve(file );
+              const path = resolve(file);
               if(existsSync(path)){
                 let license = readFileSync(file).toString();
-                license = license.replace(/Copyright \(c\) \d{4} /i, `Copyright (c) ${new Date().getFullYear()} `)
+                license = license.replace(/Copyright \(c\) \d{4} /i, `Copyright (c) ${new Date().getFullYear()} `);
+                writeFileSync(license, path);
               }else{
                 throw new Error(`file ${file} does not exist`);
               }
