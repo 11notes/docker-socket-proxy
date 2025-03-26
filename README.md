@@ -13,7 +13,15 @@ These are the main tags for the image. There is also a tag for each commit and i
 * [latest](https://hub.docker.com/r/11notes/socket-proxy/tags?name=latest)
 
 # SYNOPSIS 📖
-**What can I do with this?** This image will run a proxy to access your docker socket as read-only. The exposed proxy socket is run as 1000:1000, not as root, although the image starts the proxy process as root to interact with the actual docker socket. There is also a TCP endpoint started at 2375 that will also proxy to the actual docker socket if needed. It is not exposed by default and must be exposed via using ```- "2375:2375/tcp"``` in your compose.
+**What can I do with this?** This image will run a proxy to access your docker socket as read-only. The exposed proxy socket is run as 1000:1000, not as root, although the image starts the proxy process as root to interact with the actual docker socket. There is also a TCP endpoint started at 2375 that will also proxy to the actual docker socket if needed. It is not exposed by default and must be exposed via using ```- "2375:2375/tcp"``` in your compose. Make sure that the docker socket is accessible by the ```user:``` specification in your compose, if the UID/GID are not correct, the image will print out the correct UID/GID for you to set:
+
+```shell
+socket-proxy-1  | 2025/03/26 10:16:33 can’t access docker socket as GID 0 owned by GID 991
+socket-proxy-1  | please change the user setting in your compose to the correct UID/GID pair like this:
+socket-proxy-1  | services:
+socket-proxy-1  |   socket-proxy:
+socket-proxy-1  |     user: "0:991"
+```
 
 # UNIQUE VALUE PROPOSITION 💶
 **Why should I run this image and not the other image(s) that already exist?** Good question! All the other images on the market that do exactly the same don’t do or offer these options:
@@ -34,6 +42,7 @@ name: "traefik" # this is a compose example for Traefik
 services:
   socket-proxy:
     image: "11notes/socket-proxy:2.0.0"
+    user: "0:0" # make sure to use the same UID/GID as the owner of your docker socket!
     volumes:
       - "/run/docker.sock:/run/docker.sock:ro" # mount host docker socket, the :ro does not mean read-only for the socket, just for the actual file
       - "socket-proxy:/run/proxy" # this socket is run as 1000:1000, not as root!
@@ -119,4 +128,4 @@ This image is not based on another image but uses [scratch](https://hub.docker.c
 # ElevenNotes™️
 This image is provided to you at your own risk. Always make backups before updating an image to a different version. Check the [releases](https://github.com/11notes/docker-socket-proxy/releases) for breaking changes. If you have any problems with using this image simply raise an [issue](https://github.com/11notes/docker-socket-proxy/issues), thanks. If you have a question or inputs please create a new [discussion](https://github.com/11notes/docker-socket-proxy/discussions) instead of an issue. You can find all my other repositories on [github](https://github.com/11notes?tab=repositories).
 
-*created 24.03.2025, 13:29:58 (CET)*
+*created 26.03.2025, 11:26:47 (CET)*
