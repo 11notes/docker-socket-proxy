@@ -1,7 +1,7 @@
 name: "traefik" # this is a compose example for Traefik
 services:
   socket-proxy:
-    image: "11notes/socket-proxy:2.1.0"
+    image: "11notes/socket-proxy:2.0.0"
     user: "0:0" # make sure to use the same UID/GID as the owner of your docker socket!
     volumes:
       - "/run/docker.sock:/run/docker.sock:ro" # mount host docker socket, the :ro does not mean read-only for the socket, just for the actual file
