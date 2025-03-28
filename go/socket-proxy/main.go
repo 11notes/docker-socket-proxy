@@ -14,6 +14,7 @@ import(
 	"regexp"
 	"strconv"
 	"flag"
+	"time"
 )
 
 var(
@@ -21,6 +22,7 @@ var(
 	socket net.Listener
 	wg sync.WaitGroup
 	socketProxy string
+	dockerSocket *net.Conn
 )
 
 func signals(){
@@ -128,12 +130,16 @@ func main(){
 		signals()
 
 		// setup proxy to docker socket as root
+		docketSockerDialer := &net.Dialer{KeepAlive: 1 * time.Second}
+		dockerSocket, err := docketSockerDialer.Dial("unix", os.Getenv("SOCKET_PROXY_DOCKER_SOCKET"))
+		if err != nil {
+			log.Fatalf("could not access docker socket %v", err)
+		}
 		localhost, _ := url.Parse("http://localhost")
 		proxy = httputil.NewSingleHostReverseProxy(localhost)
 		proxy.Transport = &http.Transport{
 			DialContext: func(_ context.Context, _, _ string)(net.Conn, error){
-				log.Println("starting proxy to docker socket ...")
-				return net.Dial("unix", os.Getenv("SOCKET_PROXY_DOCKER_SOCKET"))
+				return dockerSocket, nil
 			},
 		}
 
@@ -175,6 +181,22 @@ func main(){
 				log.Fatalf("could not start tcp socket %v", err)
 			}
 		}()
+
+		// try to access the socket proxy
+		client := &http.Client{}
+		req, err := http.NewRequest(http.MethodGet, "http://localhost:2375/version", nil)
+		if err != nil {
+			log.Fatalf("could not create HTTP request %v", err)
+		}
+		res, err := client.Do(req)
+		if err != nil {
+			log.Fatalf("could not proxy to docker socket %v", err)
+		}
+		res.Body.Close()
+		if res.StatusCode != http.StatusOK {
+			log.Fatalf("could not proxy to docker socket %v", err)
+		}
+		log.Println("proxy connection to docker socket established")
 
 		wg.Wait()
 	}
