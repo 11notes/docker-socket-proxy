@@ -5,16 +5,17 @@
   "arch":"linux/amd64,linux/arm64,linux/arm/v7",
   
   "semver":{
-    "version":"2.1.0",
-    "stable":"2.1.0",
-    "latest":"2.1.0"
+    "version":"2.1.1",
+    "stable":"2.1.1",
+    "latest":"2.1.1"
   },
 
   "readme":{
     "description":"Access your docker socket safely as read-only, rootless and distroless",
-    "parent":{
-      "image":"scratch"
-    },
-    "distroless":true
+    "distroless":{
+      "layers":[
+        "11notes/distroless"
+      ]
+    }
   }
 }
