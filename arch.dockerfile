@@ -10,6 +10,7 @@
 # :: Build // socket-proxy
   FROM golang:1.24-alpine AS socket-proxy
   ARG TARGETARCH
+  ENV CGO_ENABLED=0
   USER root
   COPY ./go/ /go
   RUN set -ex; \
@@ -18,6 +19,7 @@
     mv socket-proxy /usr/local/bin/socket-proxy;
 
 # :: Header
+  FROM 11notes/distroless AS distroless
   FROM scratch
 
   # :: arguments
@@ -41,7 +43,7 @@
     ENV SOCKET_PROXY_GID=1000
 
   # :: multi-stage
-    COPY --from=fs /rootfs/ /
+    COPY --from=distroless / /
     COPY --from=socket-proxy /usr/local/bin/socket-proxy /
 
 # :: Monitor
