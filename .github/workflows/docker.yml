@@ -20,10 +20,6 @@ on:
         required: false
         default: 'false'
 
-      image:
-        description: 'set IMAGE'
-        required: false
-
       uid:
         description: 'set IMAGE_UID'
         required: false
@@ -38,6 +34,19 @@ on:
 
       semversuffix:
         description: 'suffix for semver tags'
+        required: false
+
+      dockerfile:
+        description: 'dockerfile to build from'
+        required: false
+        default: 'arch.dockerfile'
+
+      tag:
+        description: 'single tag'
+        required: false
+      
+      version:
+        description: 'single version'
         required: false
 
 jobs:
@@ -97,7 +106,7 @@ jobs:
 
             const docker = {
               image:{
-                name:(opt.input?.image || opt.dot.image),
+                name:opt.dot.image,
                 arch:(opt.dot.arch || 'linux/amd64,linux/arm64'),
                 prefix:((opt.input?.semverprefix) ? `${opt.input?.semverprefix}-` : ''),
                 suffix:((opt.input?.semversuffix) ? `-${opt.input?.semversuffix}` : ''),
@@ -107,7 +116,7 @@ jobs:
               app:{
                 image:opt.dot.image,
                 name:opt.dot.name,
-                version:opt.dot.semver.version,
+                version:(opt.input?.version || opt.dot.semver.version),
                 root:opt.dot.root,
                 UID:(opt.input?.uid || 1000),
                 GID:(opt.input?.gid || 1000),
@@ -124,15 +133,22 @@ jobs:
             docker.app.suffix = docker.image.suffix;
 
             // setup tags
-              const semver = opt.dot.semver.version.split('.');
-              docker.image.tags.push(`${context.sha.substring(0,7)}`);
-              if(Array.isArray(semver)){
-                if(semver.length >= 1) docker.image.tags.push(`${semver[0]}`);
-                if(semver.length >= 2) docker.image.tags.push(`${semver[0]}.${semver[1]}`);
-                if(semver.length >= 3) docker.image.tags.push(`${semver[0]}.${semver[1]}.${semver[2]}`);
+              if(opt.input?.dockerfile !== 'arch.dockerfile' && opt.input?.tag){
+                docker.image.tags.push(`${context.sha.substring(0,7)}`);
+                docker.image.tags.push(opt.input.tag);
+                docker.image.tags.push(`${opt.input.tag}-${docker.app.version}`);
+                docker.cache.name = `${docker.image.name}:buildcache-${opt.input.tag}`;
+              }else{
+                const semver = opt.dot.semver.version.split('.');
+                docker.image.tags.push(`${context.sha.substring(0,7)}`);
+                if(Array.isArray(semver)){
+                  if(semver.length >= 1) docker.image.tags.push(`${semver[0]}`);
+                  if(semver.length >= 2) docker.image.tags.push(`${semver[0]}.${semver[1]}`);
+                  if(semver.length >= 3) docker.image.tags.push(`${semver[0]}.${semver[1]}.${semver[2]}`);
+                }
+                if(opt.dot.semver?.stable && new RegExp(opt.dot.semver.stable, 'ig').test(docker.image.tags.join(','))) docker.image.tags.push('stable');
+                if(opt.dot.semver?.latest && new RegExp(opt.dot.semver.latest, 'ig').test(docker.image.tags.join(','))) docker.image.tags.push('latest');
               }
-              if(opt.dot.semver?.stable && new RegExp(opt.dot.semver.stable, 'ig').test(docker.image.tags.join(','))) docker.image.tags.push('stable');
-              if(opt.dot.semver?.latest && new RegExp(opt.dot.semver.latest, 'ig').test(docker.image.tags.join(','))) docker.image.tags.push('latest');
 
               for(let i=0; i<docker.image.tags.length; i++){
                 docker.image.tags[i] = `${docker.image.name}:${docker.image.prefix}${docker.image.tags[i]}${docker.image.suffix}`;
@@ -154,6 +170,7 @@ jobs:
               core.exportVariable('DOCKER_IMAGE_TAGS', docker.image.tags.join(','));
               core.exportVariable('DOCKER_IMAGE_DESCRIPTION', docker.image.description);
               core.exportVariable('DOCKER_IMAGE_ARGUMENTS', arguments.join("\r\n"));
+              core.exportVariable('DOCKER_IMAGE_DOCKERFILE', opt.input?.dockerfile || 'arch.dockerfile');
 
               core.exportVariable('WORKFLOW_CREATE_RELEASE', (opt.input?.release || true));
               core.exportVariable('WORKFLOW_CREATE_README', (opt.input?.readme || true));
@@ -182,7 +199,7 @@ jobs:
         uses: docker/build-push-action@67a2d409c0a876cbe6b11854e3e25193efe4e62d
         with:
           context: .
-          file: arch.dockerfile
+          file: ${{ env.DOCKER_IMAGE_DOCKERFILE }}
           push: true
           platforms: ${{ env.DOCKER_IMAGE_ARCH }}
           cache-from: type=registry,ref=${{ env.DOCKER_CACHE_NAME }}
@@ -218,7 +235,7 @@ jobs:
         uses: docker/build-push-action@67a2d409c0a876cbe6b11854e3e25193efe4e62d
         with:
           context: .
-          file: arch.dockerfile
+          file: ${{ env.DOCKER_IMAGE_DOCKERFILE }}
           push: true
           sbom: true
           provenance: mode=max
