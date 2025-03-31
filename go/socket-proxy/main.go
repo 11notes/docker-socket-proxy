@@ -101,7 +101,7 @@ func httpProxyBlockedPaths(url string) bool {
 func httpProxy(w http.ResponseWriter, r *http.Request){
 	method := r.Method
 	url := r.URL.String()
-	if(method  == "GET" && !httpProxyBlockedPaths(url)){
+	if((method  == "GET" || method  == "HEAD") && !httpProxyBlockedPaths(url)){
 		proxy.ServeHTTP(w, r)
 	}else{
 		log.Printf("blocked: %s %s", method, url)
@@ -125,7 +125,7 @@ func main(){
 		}
 		os.Exit(0)
 	}else{
-		log.Println("starting ...")
+		log.Println("starting socket-proxy v" + os.Getenv("APP_VERSION"))
 		// setup signal handler
 		signals()
 
@@ -139,7 +139,8 @@ func main(){
 		proxy = httputil.NewSingleHostReverseProxy(localhost)
 		proxy.Transport = &http.Transport{
 			DialContext: func(_ context.Context, _, _ string)(net.Conn, error){
-				return dockerSocket, nil
+				dockerSocket, err = docketSockerDialer.Dial("unix", os.Getenv("SOCKET_PROXY_DOCKER_SOCKET"))
+				return dockerSocket, err
 			},
 		}
 
