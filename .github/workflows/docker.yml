@@ -124,7 +124,8 @@ jobs:
               },
               cache:{
                 registry:'localhost:5000/',
-              }
+              },
+              tags:[],
             };
 
             docker.cache.name = `${docker.image.name}:${docker.image.prefix}buildcache${docker.image.suffix}`;
@@ -152,8 +153,10 @@ jobs:
                 docker.image.tags.push('latest');
               }
 
-              for(let i=0; i<docker.image.tags.length; i++){
-                docker.image.tags[i] = `${docker.image.name}:${docker.image.prefix}${docker.image.tags[i]}${docker.image.suffix}`;
+              for(const tag of docker.image.tags){
+                docker.tags.push(`${docker.image.name}:${docker.image.prefix}${tag}${docker.image.suffix}`);
+                docker.tags.push(`ghcr.io/${docker.image.name}:${docker.image.prefix}${tag}${docker.image.suffix}`);
+                docker.tags.push(`quay.io/${docker.image.name}:${docker.image.prefix}${tag}${docker.image.suffix}`);
               }
 
             // setup build arguments
@@ -169,7 +172,7 @@ jobs:
 
               core.exportVariable('DOCKER_IMAGE_NAME', docker.image.name);
               core.exportVariable('DOCKER_IMAGE_ARCH', docker.image.arch);
-              core.exportVariable('DOCKER_IMAGE_TAGS', docker.image.tags.join(','));
+              core.exportVariable('DOCKER_IMAGE_TAGS', docker.tags.join(','));
               core.exportVariable('DOCKER_IMAGE_DESCRIPTION', docker.image.description);
               core.exportVariable('DOCKER_IMAGE_ARGUMENTS', arguments.join("\r\n"));
               core.exportVariable('DOCKER_IMAGE_DOCKERFILE', opt.input?.dockerfile || 'arch.dockerfile');
@@ -183,10 +186,24 @@ jobs:
 
       # DOCKER    
       - name: docker / login to hub
-        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772
         with:
           username: 11notes
           password: ${{ secrets.DOCKER_TOKEN }}
+
+      - name: github / login to ghcr
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772
+        with:
+          registry: ghcr.io
+          username: 11notes
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: quay / login to quay
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772
+        with:
+          registry: quay.io
+          username: 11notes+github
+          password: ${{ secrets.QUAY_TOKEN }}
 
       - name: docker / setup qemu
         uses: docker/setup-qemu-action@53851d14592bedcffcf25ea515637cff71ef929a
