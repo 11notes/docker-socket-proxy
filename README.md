@@ -1,14 +1,14 @@
 ![banner](https://github.com/11notes/defaults/blob/main/static/img/banner.png?raw=true)
 
 # SOCKET-PROXY
-[<img src="https://img.shields.io/badge/github-source-blue?logo=github&color=040308">](https://github.com/11notes/docker-SOCKET-PROXY)![5px](https://github.com/11notes/defaults/blob/main/static/img/transparent5x2px.png?raw=true)![size](https://img.shields.io/docker/image-size/11notes/socket-proxy/2.1.1?color=0eb305)![5px](https://github.com/11notes/defaults/blob/main/static/img/transparent5x2px.png?raw=true)![version](https://img.shields.io/docker/v/11notes/socket-proxy/2.1.1?color=eb7a09)![5px](https://github.com/11notes/defaults/blob/main/static/img/transparent5x2px.png?raw=true)![pulls](https://img.shields.io/docker/pulls/11notes/socket-proxy?color=2b75d6)![5px](https://github.com/11notes/defaults/blob/main/static/img/transparent5x2px.png?raw=true)[<img src="https://img.shields.io/github/issues/11notes/docker-SOCKET-PROXY?color=7842f5">](https://github.com/11notes/docker-SOCKET-PROXY/issues)![5px](https://github.com/11notes/defaults/blob/main/static/img/transparent5x2px.png?raw=true)![swiss_made](https://img.shields.io/badge/Swiss_Made-FFFFFF?labelColor=FF0000&logo=data:image/svg%2bxml;base64,PHN2ZyB2ZXJzaW9uPSIxIiB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDMyIDMyIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxwYXRoIGQ9Im0wIDBoMzJ2MzJoLTMyeiIgZmlsbD0iI2YwMCIvPjxwYXRoIGQ9Im0xMyA2aDZ2N2g3djZoLTd2N2gtNnYtN2gtN3YtNmg3eiIgZmlsbD0iI2ZmZiIvPjwvc3ZnPg==)
+[<img src="https://img.shields.io/badge/github-source-blue?logo=github&color=040308">](https://github.com/11notes/docker-SOCKET-PROXY)![5px](https://github.com/11notes/defaults/blob/main/static/img/transparent5x2px.png?raw=true)![size](https://img.shields.io/docker/image-size/11notes/socket-proxy/2.1.2?color=0eb305)![5px](https://github.com/11notes/defaults/blob/main/static/img/transparent5x2px.png?raw=true)![version](https://img.shields.io/docker/v/11notes/socket-proxy/2.1.2?color=eb7a09)![5px](https://github.com/11notes/defaults/blob/main/static/img/transparent5x2px.png?raw=true)![pulls](https://img.shields.io/docker/pulls/11notes/socket-proxy?color=2b75d6)![5px](https://github.com/11notes/defaults/blob/main/static/img/transparent5x2px.png?raw=true)[<img src="https://img.shields.io/github/issues/11notes/docker-SOCKET-PROXY?color=7842f5">](https://github.com/11notes/docker-SOCKET-PROXY/issues)![5px](https://github.com/11notes/defaults/blob/main/static/img/transparent5x2px.png?raw=true)![swiss_made](https://img.shields.io/badge/Swiss_Made-FFFFFF?labelColor=FF0000&logo=data:image/svg%2bxml;base64,PHN2ZyB2ZXJzaW9uPSIxIiB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDMyIDMyIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxwYXRoIGQ9Im0wIDBoMzJ2MzJoLTMyeiIgZmlsbD0iI2YwMCIvPjxwYXRoIGQ9Im0xMyA2aDZ2N2g3djZoLTd2N2gtNnYtN2gtN3YtNmg3eiIgZmlsbD0iI2ZmZiIvPjwvc3ZnPg==)
 
 Access your docker socket safely as read-only, rootless and distroless
 
 # MAIN TAGS 🏷️
 These are the main tags for the image. There is also a tag for each commit and its shorthand sha256 value.
 
-* [2.1.1](https://hub.docker.com/r/11notes/socket-proxy/tags?name=2.1.1)
+* [2.1.2](https://hub.docker.com/r/11notes/socket-proxy/tags?name=2.1.2)
 * [stable](https://hub.docker.com/r/11notes/socket-proxy/tags?name=stable)
 * [latest](https://hub.docker.com/r/11notes/socket-proxy/tags?name=latest)
 
@@ -29,12 +29,14 @@ socket-proxy-1  |     user: "0:991"
 **Why should I run this image and not the other image(s) that already exist?** Good question! All the other images on the market that do exactly the same don’t do or offer these options:
 
 > [!IMPORTANT]
->* This image runs the proxy part as a specific UID/GID (not root), all other images run everything as root
->* This image uses a single binary, all other images use apps like Nginx or HAProxy (bloat)
->* This image has no shell since it is 100% distroless, all other images run on a distro like Debian or Alpine with full shell access (security)
->* This image does not ship with any CVE and is automatically maintained via CI/CD, all other images mostly have no CVE scanning or code quality tools in place
->* This image has no upstream dependencies, all other images have upstream dependencies
->* This image exposes the socket as a UNIX socket and TCP socket, all other images only expose it via a TCP socket
+>* This image runs the proxy part as a specific UID/GID (not root), most other images run everything as root
+>* This image uses a single binary, most other images use apps like Nginx or HAProxy (bloat)
+>* This image has no shell since it is 100% distroless, most other images run on a distro like Debian or Alpine with full shell access (security)
+>* This image does not ship with any critical or high rated CVE and is automatically maintained via CI/CD, most other images mostly have no CVE scanning or code quality tools in place
+>* This image is created via a secure, pinned CI/CD process and immune to upstream attacks, most other images have upstream dependencies that can be exploited
+>* This image contains a proper health check that verifies the app is actually working, most other images have either no health check or only check if a port is open or ping works
+>* This image exposes the socket as a UNIX socket and TCP socket, most other images only expose it via a TCP socket
+>* This image works as read-only, most other images need to write files to the image filesystem
 
 If you value security, simplicity and the ability to interact with the maintainer and developer of an image. Using my images is a great start in that direction.
 
@@ -43,7 +45,8 @@ If you value security, simplicity and the ability to interact with the maintaine
 name: "traefik" # this is a compose example for Traefik
 services:
   socket-proxy:
-    image: "11notes/socket-proxy:2.1.1"
+    image: "11notes/socket-proxy:2.1.2"
+    read_only: true
     user: "0:0" # make sure to use the same UID/GID as the owner of your docker socket!
     volumes:
       - "/run/docker.sock:/run/docker.sock:ro" # mount host docker socket, the :ro does not mean read-only for the socket, just for the actual file
@@ -119,9 +122,6 @@ networks:
 # PARENT IMAGE 🏛️
 > [!IMPORTANT]
 >This image is not based on another image but uses [scratch](https://hub.docker.com/_/scratch) as the starting layer.
->
->The image consists of the following distroless layers that were added:
->* [11notes/distroless](https://github.com/11notes/docker-distroless/blob/master/arch.dockerfile) - contains users, timezones and Root CA certificates
 
 
 
@@ -133,4 +133,4 @@ networks:
 # ElevenNotes™️
 This image is provided to you at your own risk. Always make backups before updating an image to a different version. Check the [releases](https://github.com/11notes/docker-socket-proxy/releases) for breaking changes. If you have any problems with using this image simply raise an [issue](https://github.com/11notes/docker-socket-proxy/issues), thanks. If you have a question or inputs please create a new [discussion](https://github.com/11notes/docker-socket-proxy/discussions) instead of an issue. You can find all my other repositories on [github](https://github.com/11notes?tab=repositories).
 
-*created 28.03.2025, 08:42:11 (CET)*
+*created 31.03.2025, 11:53:36 (CET)*
