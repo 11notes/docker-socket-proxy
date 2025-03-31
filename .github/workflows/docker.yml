@@ -302,12 +302,15 @@ jobs:
             const { existsSync, readFileSync, writeFileSync } = require('node:fs');
             const { resolve } = require('node:path');
             const file = 'LICENSE';
+            const year = new Date().getFullYear();
             try{
               const path = resolve(file);
               if(existsSync(path)){
                 let license = readFileSync(file).toString();
-                license = license.replace(/Copyright \(c\) \d{4} /i, `Copyright (c) ${new Date().getFullYear()} `);
-                writeFileSync(path, license);
+                if(!new RegExp(`Copyright \\(c\\) ${year} 11notes`, 'i').test(license)){
+                  license = license.replace(/Copyright \(c\) \d{4} /i, `Copyright (c) ${new Date().getFullYear()} `);
+                  writeFileSync(path, license);
+                }
               }else{
                 throw new Error(`file ${file} does not exist`);
               }
