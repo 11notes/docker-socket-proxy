@@ -12,10 +12,6 @@
 
   "readme":{
     "description":"Access your docker socket safely as read-only, rootless and distroless",
-    "distroless":{
-      "layers":[
-        "11notes/distroless"
-      ]
-    }
+    "distroless":true
   }
 }
