@@ -1,16 +1,9 @@
 ![banner](https://github.com/11notes/defaults/blob/main/static/img/banner.png?raw=true)
 
 # SOCKET-PROXY
-[<img src="https://img.shields.io/badge/github-source-blue?logo=github&color=040308">](https://github.com/11notes/docker-SOCKET-PROXY)![5px](https://github.com/11notes/defaults/blob/main/static/img/transparent5x2px.png?raw=true)![size](https://img.shields.io/docker/image-size/11notes/socket-proxy/2.1.2?color=0eb305)![5px](https://github.com/11notes/defaults/blob/main/static/img/transparent5x2px.png?raw=true)![version](https://img.shields.io/docker/v/11notes/socket-proxy/2.1.2?color=eb7a09)![5px](https://github.com/11notes/defaults/blob/main/static/img/transparent5x2px.png?raw=true)![pulls](https://img.shields.io/docker/pulls/11notes/socket-proxy?color=2b75d6)![5px](https://github.com/11notes/defaults/blob/main/static/img/transparent5x2px.png?raw=true)[<img src="https://img.shields.io/github/issues/11notes/docker-SOCKET-PROXY?color=7842f5">](https://github.com/11notes/docker-SOCKET-PROXY/issues)![5px](https://github.com/11notes/defaults/blob/main/static/img/transparent5x2px.png?raw=true)![swiss_made](https://img.shields.io/badge/Swiss_Made-FFFFFF?labelColor=FF0000&logo=data:image/svg%2bxml;base64,PHN2ZyB2ZXJzaW9uPSIxIiB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDMyIDMyIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxwYXRoIGQ9Im0wIDBoMzJ2MzJoLTMyeiIgZmlsbD0iI2YwMCIvPjxwYXRoIGQ9Im0xMyA2aDZ2N2g3djZoLTd2N2gtNnYtN2gtN3YtNmg3eiIgZmlsbD0iI2ZmZiIvPjwvc3ZnPg==)
+![size](https://img.shields.io/docker/image-size/11notes/socket-proxy/2.1.3?color=0eb305)![5px](https://github.com/11notes/defaults/blob/main/static/img/transparent5x2px.png?raw=true)![version](https://img.shields.io/docker/v/11notes/socket-proxy/2.1.3?color=eb7a09)![5px](https://github.com/11notes/defaults/blob/main/static/img/transparent5x2px.png?raw=true)![pulls](https://img.shields.io/docker/pulls/11notes/socket-proxy?color=2b75d6)![5px](https://github.com/11notes/defaults/blob/main/static/img/transparent5x2px.png?raw=true)[<img src="https://img.shields.io/github/issues/11notes/docker-SOCKET-PROXY?color=7842f5">](https://github.com/11notes/docker-SOCKET-PROXY/issues)![5px](https://github.com/11notes/defaults/blob/main/static/img/transparent5x2px.png?raw=true)![swiss_made](https://img.shields.io/badge/Swiss_Made-FFFFFF?labelColor=FF0000&logo=data:image/svg%2bxml;base64,PHN2ZyB2ZXJzaW9uPSIxIiB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDMyIDMyIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgogIDxyZWN0IHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgZmlsbD0idHJhbnNwYXJlbnQiLz4KICA8cGF0aCBkPSJtMTMgNmg2djdoN3Y2aC03djdoLTZ2LTdoLTd2LTZoN3oiIGZpbGw9IiNmZmYiLz4KPC9zdmc+)
 
 Access your docker socket safely as read-only, rootless and distroless
-
-# MAIN TAGS 🏷️
-These are the main tags for the image. There is also a tag for each commit and its shorthand sha256 value.
-
-* [2.1.2](https://hub.docker.com/r/11notes/socket-proxy/tags?name=2.1.2)
-* [stable](https://hub.docker.com/r/11notes/socket-proxy/tags?name=stable)
-* [latest](https://hub.docker.com/r/11notes/socket-proxy/tags?name=latest)
 
 # SYNOPSIS 📖
 **What can I do with this?** This image will run a proxy to access your docker socket as read-only. The exposed proxy socket is run as 1000:1000, not as root, although the image starts the proxy process as root to interact with the actual docker socket. There is also a TCP endpoint started at 2375 that will also proxy to the actual docker socket if needed. It is not exposed by default and must be exposed via using ```- "2375:2375/tcp"``` in your compose.
@@ -42,15 +35,18 @@ If you value security, simplicity and the ability to interact with the maintaine
 
 # COMPOSE ✂️
 ```yaml
-name: "traefik" # this is a compose example for Traefik
+name: "traefik"
 services:
   socket-proxy:
-    image: "11notes/socket-proxy:2.1.2"
+    image: "11notes/socket-proxy:2.1.3"
     read_only: true
-    user: "0:0" # make sure to use the same UID/GID as the owner of your docker socket!
+    # make sure to use the same UID/GID as the owner of your docker socket!
+    user: "0:0"
     volumes:
-      - "/run/docker.sock:/run/docker.sock:ro" # mount host docker socket, the :ro does not mean read-only for the socket, just for the actual file
-      - "socket-proxy:/run/proxy" # this socket is run as 1000:1000, not as root!
+      # mount host docker socket, the :ro does not mean read-only for the socket, just for the actual file
+      - "/run/docker.sock:/run/docker.sock:ro"
+      # this socket is run as 1000:1000, not as root!
+      - "socket-proxy:/run/proxy"
     restart: "always"
 
   traefik:
@@ -66,10 +62,10 @@ services:
       - "--api.insecure=true"
       - "--log.level=INFO"
       - "--log.format=json"
-      - "--providers.docker.exposedByDefault=false" # use docker provider but do not expose by default
+      - "--providers.docker.exposedByDefault=false"
       - "--entrypoints.http.address=:80"
       - "--entrypoints.https.address=:443"
-      - "--serversTransport.insecureSkipVerify=true" # do not verify downstream SSL certificates
+      - "--serversTransport.insecureSkipVerify=true"
     ports:
       - "80:80/tcp"
       - "443:443/tcp"
@@ -116,12 +112,31 @@ networks:
 | `SOCKET_PROXY_UID` | the UID used to run the proxy parts | 1000 |
 | `SOCKET_PROXY_GID` | the GID used to run the proxy parts | 1000 |
 
+# MAIN TAGS 🏷️
+These are the main tags for the image. There is also a tag for each commit and its shorthand sha256 value.
+
+* [2.1.3](https://hub.docker.com/r/11notes/socket-proxy/tags?name=2.1.3)
+
+### There is no latest tag, what am I supposed to do about updates?
+It is of my opinion that the ```:latest``` tag is dangerous. Many times, I’ve introduced **breaking** changes to my images. This would have messed up everything for some people. If you don’t want to change the tag to the latest [semver](https://semver.org/), simply use the short versions of [semver](https://semver.org/). Instead of using ```:2.1.3``` you can use ```:2``` or ```:2.1```. Since on each new version these tags are updated to the latest version of the software, using them is identical to using ```:latest``` but at least fixed to a major or minor version.
+
+If you still insist on having the bleeding edge release of this app, simply use the ```:rolling``` tag, but be warned! You will get the latest version of the app instantly, regardless of breaking changes or security issues or what so ever. You do this at your own risk!
+
+# REGISTRIES ☁️
+```
+docker pull 11notes/socket-proxy:2.1.3
+docker pull ghcr.io/11notes/socket-proxy:2.1.3
+docker pull quay.io/11notes/socket-proxy:2.1.3
+```
+
 # SOURCE 💾
 * [11notes/socket-proxy](https://github.com/11notes/docker-SOCKET-PROXY)
 
 # PARENT IMAGE 🏛️
 > [!IMPORTANT]
 >This image is not based on another image but uses [scratch](https://hub.docker.com/_/scratch) as the starting layer.
+>The image consists of the following distroless layers that were added:
+>* [11notes/distroless](https://github.com/11notes/docker-distroless/blob/master/arch.dockerfile) - contains users, timezones and Root CA certificates
 
 
 
@@ -133,4 +148,4 @@ networks:
 # ElevenNotes™️
 This image is provided to you at your own risk. Always make backups before updating an image to a different version. Check the [releases](https://github.com/11notes/docker-socket-proxy/releases) for breaking changes. If you have any problems with using this image simply raise an [issue](https://github.com/11notes/docker-socket-proxy/issues), thanks. If you have a question or inputs please create a new [discussion](https://github.com/11notes/docker-socket-proxy/discussions) instead of an issue. You can find all my other repositories on [github](https://github.com/11notes?tab=repositories).
 
-*created 31.03.2025, 21:27:39 (CET)*
+*created 16.07.2025, 11:33:32 (CET)*
