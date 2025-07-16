@@ -10,6 +10,18 @@ on:
         required: false
         default: 'docker'
 
+      runs-on:
+        description: 'set runs-on for workflow (github or selfhosted)'
+        type: string
+        required: false
+        default: 'ubuntu-22.04'
+
+
+      build:
+        description: 'set WORKFLOW_BUILD'
+        required: false
+        default: 'true'
+
       release:
         description: 'set WORKFLOW_GITHUB_RELEASE'
         required: false
@@ -19,39 +31,15 @@ on:
         description: 'set WORKFLOW_GITHUB_README'
         required: false
         default: 'false'
-
-      uid:
-        description: 'set IMAGE_UID'
-        required: false
-
-      gid:
-        description: 'set IMAGE_GID'
-        required: false
-
-      semverprefix:
-        description: 'prefix for semver tags'
-        required: false
-
-      semversuffix:
-        description: 'suffix for semver tags'
-        required: false
-
-      dockerfile:
-        description: 'dockerfile to build from'
-        required: false
-        default: 'arch.dockerfile'
-
-      tag:
-        description: 'single tag'
-        required: false
-      
-      version:
-        description: 'single version'
+        
+      etc:
+        description: 'base64 encoded json string'
         required: false
 
 jobs:
   docker:
-    runs-on: ubuntu-22.04
+    runs-on: ${{ inputs.runs-on }}
+    timeout-minutes: 1440
 
     services:
       registry:
@@ -63,7 +51,6 @@ jobs:
       actions: read
       contents: write
       packages: write
-      security-events: write
 
     steps:   
       - name: init / checkout
@@ -78,12 +65,17 @@ jobs:
           script: |
             const { existsSync, readFileSync } = require('node:fs');
             const { resolve } = require('node:path');
+            const { inspect } = require('node:util');
+            const { Buffer } = require('node:buffer');
             const inputs = `${{ toJSON(github.event.inputs) }}`;
             const opt = {input:{}, dot:{}};            
 
             try{
               if(inputs.length > 0){
                 opt.input = JSON.parse(inputs);
+                if(opt.input?.etc){
+                  opt.input.etc = JSON.parse(Buffer.from(opt.input.etc, 'base64').toString('ascii'));
+                }
               }
             }catch(e){
               core.warning('could not parse github.event.inputs');
@@ -104,22 +96,24 @@ jobs:
               core.setFailed(e);
             }
 
+            core.info(inspect(opt, {showHidden:false, depth:null, colors:true}));
+
             const docker = {
               image:{
                 name:opt.dot.image,
-                arch:(opt.dot.arch || 'linux/amd64,linux/arm64'),
-                prefix:((opt.input?.semverprefix) ? `${opt.input?.semverprefix}-` : ''),
-                suffix:((opt.input?.semversuffix) ? `-${opt.input?.semversuffix}` : ''),
+                arch:(opt.input?.etc?.arch || opt.dot?.arch || 'linux/amd64,linux/arm64'),
+                prefix:((opt.input?.etc?.semverprefix) ? `${opt.input?.etc?.semverprefix}-` : ''),
+                suffix:((opt.input?.etc?.semversuffix) ? `-${opt.input?.etc?.semversuffix}` : ''),
                 description:(opt.dot?.readme?.description || ''),
                 tags:[],
               },
               app:{
                 image:opt.dot.image,
                 name:opt.dot.name,
-                version:(opt.input?.version || opt.dot.semver.version),
+                version:(opt.input?.etc?.version || opt.dot?.semver?.version),
                 root:opt.dot.root,
-                UID:(opt.input?.uid || 1000),
-                GID:(opt.input?.gid || 1000),
+                UID:(opt.input?.etc?.uid || 1000),
+                GID:(opt.input?.etc?.gid || 1000),
                 no_cache:new Date().getTime(),
               },
               cache:{
@@ -134,22 +128,25 @@ jobs:
             docker.app.suffix = docker.image.suffix;
 
             // setup tags
-              if(opt.input?.dockerfile !== 'arch.dockerfile' && opt.input?.tag){
+              if(!opt.dot?.semver?.disable?.rolling){
+                docker.image.tags.push('rolling');
+              }
+              if(opt.input?.etc?.dockerfile !== 'arch.dockerfile' && opt.input?.etc?.tag){
                 docker.image.tags.push(`${context.sha.substring(0,7)}`);
-                docker.image.tags.push(opt.input.tag);
-                docker.image.tags.push(`${opt.input.tag}-${docker.app.version}`);
-                docker.cache.name = `${docker.image.name}:buildcache-${opt.input.tag}`;
-              }else if(opt.dot?.semver?.version){
-                const semver = opt.dot.semver.version.split('.');
+                docker.image.tags.push(opt.input.etc.tag);
+                docker.image.tags.push(`${opt.input.etc.tag}-${docker.app.version}`);
+                docker.cache.name = `${docker.image.name}:buildcache-${opt.input.etc.tag}`;
+              }else if(docker.app.version !== 'latest'){
+                const semver = docker.app.version.split('.');
                 docker.image.tags.push(`${context.sha.substring(0,7)}`);
                 if(Array.isArray(semver)){
                   if(semver.length >= 1) docker.image.tags.push(`${semver[0]}`);
                   if(semver.length >= 2) docker.image.tags.push(`${semver[0]}.${semver[1]}`);
                   if(semver.length >= 3) docker.image.tags.push(`${semver[0]}.${semver[1]}.${semver[2]}`);
                 }
-                if(opt.dot.semver?.stable && new RegExp(opt.dot.semver.stable, 'ig').test(docker.image.tags.join(','))) docker.image.tags.push('stable');
-                if(opt.dot.semver?.latest && new RegExp(opt.dot.semver.latest, 'ig').test(docker.image.tags.join(','))) docker.image.tags.push('latest');
-              }else if(opt.input?.version && opt.input.version === 'latest'){
+                if(opt.dot?.semver?.stable && new RegExp(opt.dot?.semver.stable, 'ig').test(docker.image.tags.join(','))) docker.image.tags.push('stable');
+                if(opt.dot?.semver?.latest && new RegExp(opt.dot?.semver.latest, 'ig').test(docker.image.tags.join(','))) docker.image.tags.push('latest');
+              }else{
                 docker.image.tags.push('latest');
               }
 
@@ -160,6 +157,16 @@ jobs:
               }
 
             // setup build arguments
+              if(opt.input?.etc?.build?.args){
+                for(const arg in opt.input.etc.build.args){
+                  docker.app[arg] = opt.input.etc.build.args[arg];
+                }
+              }
+              if(opt.dot?.build?.args){
+                for(const arg in opt.dot.build.args){
+                  docker.app[arg] = opt.dot.build.args[arg];
+                }
+              }
               const arguments = [];
               for(const argument in docker.app){
                 arguments.push(`APP_${argument.toUpperCase()}=${docker.app[argument]}`);
@@ -175,12 +182,18 @@ jobs:
               core.exportVariable('DOCKER_IMAGE_TAGS', docker.tags.join(','));
               core.exportVariable('DOCKER_IMAGE_DESCRIPTION', docker.image.description);
               core.exportVariable('DOCKER_IMAGE_ARGUMENTS', arguments.join("\r\n"));
-              core.exportVariable('DOCKER_IMAGE_DOCKERFILE', opt.input?.dockerfile || 'arch.dockerfile');
+              core.exportVariable('DOCKER_IMAGE_DOCKERFILE', opt.input?.etc?.dockerfile || 'arch.dockerfile');
 
-              core.exportVariable('WORKFLOW_CREATE_RELEASE', (opt.input?.release || true));
-              core.exportVariable('WORKFLOW_CREATE_README', (opt.input?.readme || true));
-              core.exportVariable('WORKFLOW_GRYPE_FAIL_ON_SEVERITY', (opt.json?.grpye?.fail || true));
-              core.exportVariable('WORKFLOW_GRYPE_SEVERITY_CUTOFF', (opt.json?.grpye?.severity || 'high'));
+              core.exportVariable('WORKFLOW_BUILD', (opt.input?.build === undefined) ? false : opt.input.build);
+              core.exportVariable('WORKFLOW_CREATE_RELEASE', (opt.input?.release === undefined) ? false : opt.input.release);
+              core.exportVariable('WORKFLOW_CREATE_README', (opt.input?.readme === undefined) ? false : opt.input.readme);
+              core.exportVariable('WORKFLOW_GRYPE_FAIL_ON_SEVERITY', (opt.dot?.grype?.fail === undefined) ? true : opt.dot.grype.fail);
+              core.exportVariable('WORKFLOW_GRYPE_SEVERITY_CUTOFF', (opt.dot?.grype?.severity || 'high'));
+              if(opt.dot?.readme?.comparison){
+                core.exportVariable('WORKFLOW_CREATE_COMPARISON', true);
+                core.exportVariable('WORKFLOW_CREATE_COMPARISON_FOREIGN_IMAGE', opt.dot.readme.comparison.image);
+                core.exportVariable('WORKFLOW_CREATE_COMPARISON_IMAGE', `${docker.image.name}:${docker.app.version}`);
+              }
 
 
 
@@ -206,14 +219,17 @@ jobs:
           password: ${{ secrets.QUAY_TOKEN }}
 
       - name: docker / setup qemu
+        if: env.WORKFLOW_BUILD == 'true'
         uses: docker/setup-qemu-action@53851d14592bedcffcf25ea515637cff71ef929a
 
       - name: docker / setup buildx
+        if: env.WORKFLOW_BUILD == 'true'
         uses: docker/setup-buildx-action@6524bf65af31da8d45b59e8c27de4bd072b392f5
         with:
           driver-opts: network=host
 
-      - name: docker / build & push & tag grype
+      - name: docker / build image locally
+        if: env.WORKFLOW_BUILD == 'true'
         id: docker-build
         uses: docker/build-push-action@67a2d409c0a876cbe6b11854e3e25193efe4e62d
         with:
@@ -229,8 +245,9 @@ jobs:
             ${{ env.DOCKER_CACHE_GRYPE }}
 
       - name: grype / scan
+        if: env.WORKFLOW_BUILD == 'true'
         id: grype
-        uses: anchore/scan-action@abae793926ec39a78ab18002bc7fc45bbbd94342
+        uses: anchore/scan-action@dc6246fcaf83ae86fcc6010b9824c30d7320729e
         with:
           image: ${{ env.DOCKER_CACHE_GRYPE }}
           fail-build: ${{ env.WORKFLOW_GRYPE_FAIL_ON_SEVERITY }}
@@ -240,8 +257,8 @@ jobs:
           cache-db: true
 
       - name: grype / fail
-        if: failure() || steps.grype.outcome == 'failure'
-        uses: anchore/scan-action@abae793926ec39a78ab18002bc7fc45bbbd94342
+        if: env.WORKFLOW_BUILD == 'true' && (failure() || steps.grype.outcome == 'failure') && steps.docker-build.outcome == 'success'
+        uses: anchore/scan-action@dc6246fcaf83ae86fcc6010b9824c30d7320729e
         with:
           image: ${{ env.DOCKER_CACHE_GRYPE }}
           fail-build: false
@@ -250,7 +267,8 @@ jobs:
           by-cve: true
           cache-db: true
 
-      - name: docker / build & push
+      - name: docker / build image from cache and push to registries
+        if: env.WORKFLOW_BUILD == 'true'
         uses: docker/build-push-action@67a2d409c0a876cbe6b11854e3e25193efe4e62d
         with:
           context: .
@@ -269,21 +287,8 @@ jobs:
 
 
       # RELEASE      
-      - name: github / release / log
-        continue-on-error: true
-        id: git-log
-        run: |
-          LOCAL_LAST_TAG=$(git describe --abbrev=0 --tags `git rev-list --tags --skip=1 --max-count=1`)
-          echo "using last tag: ${LOCAL_LAST_TAG}"
-          LOCAL_COMMITS=$(git log ${LOCAL_LAST_TAG}..HEAD --oneline)
-
-          EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
-          echo "commits<<${EOF}" >> ${GITHUB_OUTPUT}
-          echo "${LOCAL_COMMITS}" >> ${GITHUB_OUTPUT}
-          echo "${EOF}" >> ${GITHUB_OUTPUT}
-
       - name: github / release / markdown
-        if: env.WORKFLOW_CREATE_RELEASE == 'true'  && steps.git-log.outcome == 'success'
+        if: env.WORKFLOW_CREATE_RELEASE == 'true'
         id: git-release
         uses: 11notes/action-docker-release@v1
         # WHY IS THIS ACTION NOT SHA256 PINNED? SECURITY MUCH?!?!?!
@@ -292,8 +297,6 @@ jobs:
         # in the repo. This code is not modified and can't be modified by this action.
         # It does create the markdown for the release, which could be abused, but to what
         # extend? Adding a link to a malicious repo?
-        with:
-          git_log: ${{ steps.git-log.outputs.commits }}
 
       - name: github / release / create
         if: env.WORKFLOW_CREATE_RELEASE == 'true' && steps.git-release.outcome == 'success'
@@ -339,15 +342,27 @@ jobs:
 
 
       # README
-      - name: github / checkout master
+      - name: github / checkout HEAD
         continue-on-error: true
-        run: |         
-          git checkout master
+        run: |     
+          git checkout HEAD
+
+      - name: docker / setup comparison images
+        if: env.WORKFLOW_CREATE_COMPARISON == 'true'
+        continue-on-error: true
+        run: |    
+          docker image pull ${{ env.WORKFLOW_CREATE_COMPARISON_IMAGE }}
+          docker image ls --filter "reference=${{ env.WORKFLOW_CREATE_COMPARISON_IMAGE }}" --format json | jq --raw-output '.Size' &> ./comparison.size0.log
+
+          docker image pull ${{ env.WORKFLOW_CREATE_COMPARISON_FOREIGN_IMAGE }}
+          docker image ls --filter "reference=${{ env.WORKFLOW_CREATE_COMPARISON_FOREIGN_IMAGE }}" --format json | jq --raw-output '.Size' &> ./comparison.size1.log
+          
+          docker run --entrypoint "/bin/sh" --rm ${{ env.WORKFLOW_CREATE_COMPARISON_FOREIGN_IMAGE }} -c id &> ./comparison.id.log
 
       - name: github / create README.md
         id: github-readme
         continue-on-error: true
-        if: env.WORKFLOW_CREATE_README == 'true' && steps.docker-build.outcome == 'success'
+        if: env.WORKFLOW_CREATE_README == 'true'
         uses: 11notes/action-docker-readme@v1
         # WHY IS THIS ACTION NOT SHA256 PINNED? SECURITY MUCH?!?!?!
         # ---------------------------------------------------------------------------------
@@ -360,6 +375,19 @@ jobs:
           sarif_file: ${{ steps.grype.outputs.sarif }}
           build_output_metadata: ${{ steps.docker-build.outputs.metadata }}
 
+      - name: docker / push README.md to docker hub
+        continue-on-error: true
+        if: steps.github-readme.outcome == 'success' && hashFiles('README_NONGITHUB.md') != ''
+        uses: christian-korneck/update-container-description-action@d36005551adeaba9698d8d67a296bd16fa91f8e8
+        env:
+          DOCKER_USER: 11notes
+          DOCKER_PASS: ${{ secrets.DOCKER_TOKEN }}
+        with:
+          destination_container_repo: ${{ env.DOCKER_IMAGE_NAME }}
+          provider: dockerhub
+          short_description: ${{ env.DOCKER_IMAGE_DESCRIPTION }}
+          readme_file: 'README_NONGITHUB.md'
+
       - name: github / commit & push
         continue-on-error: true
         if: steps.github-readme.outcome == 'success' && hashFiles('README.md') != ''
@@ -370,24 +398,14 @@ jobs:
           if [ -f compose.yaml ]; then
             git add compose.yaml
           fi
+          if [ -f compose.yml ]; then
+            git add compose.yml
+          fi
           if [ -f LICENSE ]; then
             git add LICENSE
           fi
           git commit -m "auto update README.md"
-          git push
-
-      - name: docker / push README.md to docker hub
-        continue-on-error: true
-        if: steps.github-readme.outcome == 'success' && hashFiles('README_DOCKER.md') != ''
-        uses: christian-korneck/update-container-description-action@d36005551adeaba9698d8d67a296bd16fa91f8e8
-        env:
-          DOCKER_USER: 11notes
-          DOCKER_PASS: ${{ secrets.DOCKER_TOKEN }}
-        with:
-          destination_container_repo: ${{ env.DOCKER_IMAGE_NAME }}
-          provider: dockerhub
-          short_description: ${{ env.DOCKER_IMAGE_DESCRIPTION }}
-          readme_file: 'README_DOCKER.md'
+          git push origin HEAD:master
 
 
 
