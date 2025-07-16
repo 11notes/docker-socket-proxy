@@ -140,6 +140,9 @@ func main(){
 		proxy.Transport = &http.Transport{
 			DialContext: func(_ context.Context, _, _ string)(net.Conn, error){
 				dockerSocket, err = docketSockerDialer.Dial("unix", os.Getenv("SOCKET_PROXY_DOCKER_SOCKET"))
+				if err != nil {
+					log.Fatalf("could not access docker socket %v", err)
+				}
 				return dockerSocket, err
 			},
 		}
