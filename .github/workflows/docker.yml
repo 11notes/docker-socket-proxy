@@ -404,7 +404,7 @@ jobs:
           if [ -f LICENSE ]; then
             git add LICENSE
           fi
-          git commit -m "auto update README.md"
+          git commit -m "update README.md"
           git push origin HEAD:master
 
 
