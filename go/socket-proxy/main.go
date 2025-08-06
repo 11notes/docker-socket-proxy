@@ -130,7 +130,7 @@ func main(){
 		signals()
 
 		// setup proxy to docker socket as root
-		docketSockerDialer := &net.Dialer{KeepAlive: 1 * time.Second}
+		docketSockerDialer := &net.Dialer{KeepAlive: os.Getenv("SOCKET_PROXY_KEEPALIVE") * time.Second, Timeout: os.Getenv("SOCKET_PROXY_TIMEOUT") * time.Second, Deadline: os.Getenv("SOCKET_PROXY_DEADLINE") * time.Second}
 		dockerSocket, err := docketSockerDialer.Dial("unix", os.Getenv("SOCKET_PROXY_DOCKER_SOCKET"))
 		if err != nil {
 			log.Fatalf("could not access docker socket %v", err)

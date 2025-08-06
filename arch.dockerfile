@@ -56,7 +56,10 @@
     ENV SOCKET_PROXY_VOLUME="/run/proxy" \
         SOCKET_PROXY_DOCKER_SOCKET="/run/docker.sock" \
         SOCKET_PROXY_UID=${APP_UID} \
-        SOCKET_PROXY_GID=${APP_GID}
+        SOCKET_PROXY_GID=${APP_GID} \
+        SOCKET_PROXY_KEEPALIVE=10 \
+        SOCKET_PROXY_TIMEOUT=30 \
+        SOCKET_PROXY_DEADLINE=60
 
   # :: multi-stage
     COPY --from=distroless / /

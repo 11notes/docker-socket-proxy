@@ -10,19 +10,19 @@ socket-proxy-1  |   socket-proxy:
 socket-proxy-1  |     user: "0:991"
 ```
 
-${{ content_uvp }} Good question! All the other images on the market that do exactly the same don’t do or offer these options:
+${{ content_uvp }} Good question! Because ...
 
 ${{ github:> [!IMPORTANT] }}
-${{ github:> }}* This image runs the proxy part as a specific UID/GID (not root), most other images run everything as root
-${{ github:> }}* This image uses a single binary, most other images use apps like Nginx or HAProxy (bloat)
-${{ github:> }}* This image has no shell since it is 100% distroless, most other images run on a distro like Debian or Alpine with full shell access (security)
-${{ github:> }}* This image does not ship with any critical or high rated CVE and is automatically maintained via CI/CD, most other images mostly have no CVE scanning or code quality tools in place
-${{ github:> }}* This image is created via a secure, pinned CI/CD process and immune to upstream attacks, most other images have upstream dependencies that can be exploited
-${{ github:> }}* This image contains a proper health check that verifies the app is actually working, most other images have either no health check or only check if a port is open or ping works
-${{ github:> }}* This image exposes the socket as a UNIX socket and TCP socket, most other images only expose it via a TCP socket
-${{ github:> }}* This image works as read-only, most other images need to write files to the image filesystem
+${{ github:> }}* ... this image exposes the socket not as root but as 1000:1000
+${{ github:> }}* ... this image has no shell since it is [distroless](https://github.com/11notes/RTFM/blob/main/linux/container/image/distroless.md)
+${{ github:> }}* ... this image is auto updated to the latest version via CI/CD
+${{ github:> }}* ... this image has a health check
+${{ github:> }}* ... this image runs read-only
+${{ github:> }}* ... this image is automatically scanned for CVEs before and after publishing
+${{ github:> }}* ... this image is created via a secure and pinned CI/CD process
+${{ github:> }}* ... this image is very small
 
-If you value security, simplicity and the ability to interact with the maintainer and developer of an image. Using my images is a great start in that direction.
+If you value security, simplicity and optimizations to the extreme, then this image might be for you.
 
 ${{ content_compose }}
 
@@ -31,6 +31,9 @@ ${{ content_environment }}
 | `SOCKET_PROXY_DOCKER_SOCKET` | path to the actual docker socket | /run/docker.sock |
 | `SOCKET_PROXY_UID` | the UID used to run the proxy parts | 1000 |
 | `SOCKET_PROXY_GID` | the GID used to run the proxy parts | 1000 |
+| `SOCKET_PROXY_KEEPALIVE` | connection keep alive interval to SOCKET_PROXY_DOCKER_SOCKET | 10 |
+| `SOCKET_PROXY_TIMEOUT` | connection max. timeout to SOCKET_PROXY_DOCKER_SOCKET | 30 |
+| `SOCKET_PROXY_DEADLINE` | connection max. deadline to SOCKET_PROXY_DOCKER_SOCKET | 60 |
 
 ${{ content_source }}
 
