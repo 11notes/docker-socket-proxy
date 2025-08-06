@@ -1,63 +1,146 @@
-name: "traefik"
+name: "reverse-proxy"
 services:
   socket-proxy:
-    image: "11notes/socket-proxy:2.1.3"
+    # this image is used to expose the docker socket as read-only to traefik
+    # you can check https://github.com/11notes/docker-socket-proxy for all details
+    image: "11notes/socket-proxy:2.1.4"
     read_only: true
-    # make sure to use the same UID/GID as the owner of your docker socket!
-    user: "0:0"
+    user: "0:108" 
+    environment:
+      TZ: "Europe/Zurich"
     volumes:
-      # mount host docker socket, the :ro does not mean read-only for the socket, just for the actual file
-      - "/run/docker.sock:/run/docker.sock:ro"
-      # this socket is run as 1000:1000, not as root!
-      - "socket-proxy:/run/proxy"
+      - "/run/docker.sock:/run/docker.sock:ro" 
+      - "socket-proxy.run:/run/proxy"
     restart: "always"
 
   traefik:
-    image: "11notes/traefik:3.2.0"
     depends_on:
       socket-proxy:
         condition: "service_healthy"
         restart: true
+    image: "11notes/traefik:3.5.0"
+    read_only: true
+    labels:
+      - "traefik.enable=true"
+
+      # default errors middleware
+      - "traefik.http.middlewares.default-errors.errors.status=402-599"
+      - "traefik.http.middlewares.default-errors.errors.query=/{status}"
+      - "traefik.http.middlewares.default-errors.errors.service=default-errors"
+
+      # default ratelimit
+      - "traefik.http.middlewares.default-ratelimit.ratelimit.average=100"
+      - "traefik.http.middlewares.default-ratelimit.ratelimit.burst=120"
+      - "traefik.http.middlewares.default-ratelimit.ratelimit.period=1s"
+
+      # default CSP
+      - "traefik.http.middlewares.default-csp.headers.contentSecurityPolicy=default-src 'self' blob: data: 'unsafe-inline'"
+
+      # default allowlist
+      - "traefik.http.middlewares.default-ipallowlist-RFC1918.ipallowlist.sourcerange=10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+
+      # example on how to secure the traefik dashboard and api
+      - "traefik.http.routers.dashboard.rule=Host(`${TRAEFIK_FQDN}`)"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.http.routers.dashboard.middlewares=dashboard-auth"
+      - "traefik.http.routers.dashboard.entrypoints=https"
+      # admin / traefik, please change!
+      - "traefik.http.middlewares.dashboard-auth.basicauth.users=admin:$2a$12$ktgZsFQZ0S1FeQbI1JjS9u36fAJMHDQaY6LNi9EkEp8sKtP5BK43C"
+
+      # default catch-all router
+      - "traefik.http.routers.default.rule=HostRegexp(`.+`)"
+      - "traefik.http.routers.default.priority=1"
+      - "traefik.http.routers.default.entrypoints=https"
+      - "traefik.http.routers.default.service=default-errors"
+
+      # default http to https redirection
+      - "traefik.http.middlewares.default-http.redirectscheme.permanent=true"
+      - "traefik.http.middlewares.default-http.redirectscheme.scheme=https"
+      - "traefik.http.routers.default-http.priority=1"
+      - "traefik.http.routers.default-http.rule=HostRegexp(`.+`)"
+      - "traefik.http.routers.default-http.entrypoints=http"
+      - "traefik.http.routers.default-http.middlewares=default-http"
+      - "traefik.http.routers.default-http.service=default-http"
+      - "traefik.http.services.default-http.loadbalancer.passhostheader=true"
+    environment:
+      TZ: "Europe/Zurich"
     command:
+      # ping is needed for the health check to work!
+      - "--ping=true"
+      - "--ping.terminatingStatusCode=204"
       - "--global.checkNewVersion=false"
       - "--global.sendAnonymousUsage=false"
+      - "--accesslog=true"
       - "--api.dashboard=true"
-      - "--api.insecure=true"
+      # disable insecure api and dashboard access
+      - "--api.insecure=false"
       - "--log.level=INFO"
       - "--log.format=json"
       - "--providers.docker.exposedByDefault=false"
+      - "--providers.file.directory=/traefik/var"
       - "--entrypoints.http.address=:80"
+      - "--entrypoints.http.http.middlewares=default-errors,default-ratelimit,default-ipallowlist-RFC1918,default-csp"
       - "--entrypoints.https.address=:443"
+      - "--entrypoints.https.http.tls=true"
+      - "--entrypoints.https.http.middlewares=default-errors,default-ratelimit,default-ipallowlist-RFC1918,default-csp"
+      # disable upstream HTTPS certificate checks (https > https)
       - "--serversTransport.insecureSkipVerify=true"
+      - "--experimental.plugins.rewriteResponseHeaders.moduleName=github.com/jamesmcroft/traefik-plugin-rewrite-response-headers"
+      - "--experimental.plugins.rewriteResponseHeaders.version=v1.1.2"
+      - "--experimental.plugins.geoblock.moduleName=github.com/PascalMinder/geoblock"
+      - "--experimental.plugins.geoblock.version=v0.3.3"
     ports:
       - "80:80/tcp"
       - "443:443/tcp"
-      - "8080:8080/tcp"
-    networks:
-      frontend:
-      backend:
     volumes:
-      - "socket-proxy:/var/run"
+      - "var:/traefik/var"
+      - "plugins:/traefik/plugins"
+      # access docker socket via proxy read-only
+      - "socket-proxy.run:/var/run"
+    networks:
+      backend:
+      frontend:
     sysctls:
+      # allow rootless container to access ports < 1024
       net.ipv4.ip_unprivileged_port_start: 80
     restart: "always"
 
-  nginx: # example container
-    image: "11notes/nginx:1.26.2"
+  errors:
+    # this image can be used to display a simple error message since Traefik can’t serve content
+    image: "11notes/traefik:errors"
+    read_only: true
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.default.priority=1"
-      - "traefik.http.routers.default.rule=PathPrefix(`/`)"
-      - "traefik.http.routers.default.entrypoints=http"
-      - "traefik.http.routers.default.service=default"
-      - "traefik.http.services.default.loadbalancer.server.port=8443"
-      - "traefik.http.services.default.loadbalancer.server.scheme=https" # proxy from http to https since this image runs by default on https
+      - "traefik.http.services.default-errors.loadbalancer.server.port=8080"
+    environment:
+      TZ: "Europe/Zurich"
     networks:
-      backend: # allow container only to be accessed via traefik
+      backend:
+    restart: "always"
+
+  # example container
+  nginx:
+    image: "11notes/nginx:stable"
+    read_only: true
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.nginx-example.rule=Host(`${NGINX_FQDN}`)"
+      - "traefik.http.routers.nginx-example.entrypoints=https"
+      - "traefik.http.routers.nginx-example.service=nginx-example"
+    ports:
+      - "3000:3000/tcp"
+    tmpfs:
+      # needed for read_only: true
+      - "/nginx/cache:uid=1000,gid=1000"
+      - "/nginx/run:uid=1000,gid=1000"
+    networks:
+      backend:
     restart: "always"
 
 volumes:
-  socket-proxy:
+  var:
+  plugins:
+  socket-proxy.run:
 
 networks:
   frontend:

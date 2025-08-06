@@ -33,7 +33,6 @@ ${{ content_environment }}
 | `SOCKET_PROXY_GID` | the GID used to run the proxy parts | 1000 |
 | `SOCKET_PROXY_KEEPALIVE` | connection keep alive interval to SOCKET_PROXY_DOCKER_SOCKET | 10s |
 | `SOCKET_PROXY_TIMEOUT` | connection max. timeout to SOCKET_PROXY_DOCKER_SOCKET | 30s |
-| `SOCKET_PROXY_DEADLINE` | connection max. deadline to SOCKET_PROXY_DOCKER_SOCKET | 60s |
 
 ${{ content_source }}
 
