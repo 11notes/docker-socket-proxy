@@ -1,7 +1,7 @@
 name: "traefik"
 services:
   socket-proxy:
-    image: "11notes/socket-proxy:2.1.2"
+    image: "11notes/socket-proxy:2.1.3"
     read_only: true
     # make sure to use the same UID/GID as the owner of your docker socket!
     user: "0:0"
