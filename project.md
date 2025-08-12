@@ -10,6 +10,16 @@ socket-proxy-1  |   socket-proxy:
 socket-proxy-1  |     user: "0:991"
 ```
 
+You find the list of all available Docker API endpoints [here](https://docs.docker.com/reference/api/engine/version/v1.51/). The following paths are still blocked, even though they are accesses only via GET:
+
+- [GET /containers/{id}/attach/ws](https://docs.docker.com/reference/api/engine/version/v1.51/#tag/Container/operation/ContainerAttachWebsocket)
+- [GET /containers/{id}/export](https://docs.docker.com/reference/api/engine/version/v1.51/#tag/Container/operation/ContainerExport)
+- [GET /containers/{id}/archive](https://docs.docker.com/reference/api/engine/version/v1.51/#tag/Container/operation/ContainerArchive)
+- [GET /secrets](https://docs.docker.com/reference/api/engine/version/v1.51/#tag/Secret/operation/SecretList)
+- [GET /configs](https://docs.docker.com/reference/api/engine/version/v1.51/#tag/Config)
+- [GET /swarm/unlockkey](https://docs.docker.com/reference/api/engine/version/v1.51/#tag/Swarm/operation/SwarmUnlockkey)
+- [GET /images/{name}/get](https://docs.docker.com/reference/api/engine/version/v1.51/#tag/Image/operation/ImageGet)
+
 ${{ content_uvp }} Good question! Because ...
 
 ${{ github:> [!IMPORTANT] }}
