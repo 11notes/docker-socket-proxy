@@ -15,7 +15,7 @@
 # ║                       BUILD                         ║
 # ╚═════════════════════════════════════════════════════╝
   # :: SOCKET-PROXY
-  FROM 11notes/go:1.24 AS build
+  FROM 11notes/go:1.25 AS build
   ARG APP_VERSION \
       BUILD_DIR \
       BUILD_BIN
@@ -65,7 +65,7 @@
     COPY --from=build /distroless/ /
 
 # :: PERSISTENT DATA
-  HEALTHCHECK --interval=5s --timeout=2s --start-period=5s \
+  HEALTHCHECK --interval=5s --timeout=3s --start-period=5s \
     CMD ["/usr/local/bin/socket-proxy", "--healthcheck"]
 
 # :: EXECUTE
