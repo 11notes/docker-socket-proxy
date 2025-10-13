@@ -84,7 +84,7 @@ func httpProxyBlockedPaths(url string) bool {
 		regexp.MustCompile(`(?i)secrets.*`), // could exfil credentials
 		regexp.MustCompile(`(?i)configs.*`), // could exfil credentials
 		regexp.MustCompile(`(?i)swarm/unlockkey.*`), // could exfil credentials
-		regexp.MustCompile(`(?i)images/get.*`), // could exfil container data
+		regexp.MustCompile(`(?i)images/get(/|)$`), // could exfil container data
 	}
 
 	for _, pattern := range blockedPatterns {
