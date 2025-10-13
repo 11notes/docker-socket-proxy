@@ -1,7 +1,6 @@
 package main
 
 import(
-	"log"
 	"net"
 	"net/http"
 	"net/url"
@@ -13,68 +12,66 @@ import(
 	"sync"
 	"regexp"
 	"strconv"
-	"flag"
 	"time"
+
+	"github.com/11notes/go"
 )
 
 var(
+	Eleven eleven.New = eleven.New{}
 	proxy *httputil.ReverseProxy
 	socket net.Listener
 	wg sync.WaitGroup
 	socketProxy string
-	dockerSocket *net.Conn
+	keepAlive string = os.Getenv("SOCKET_PROXY_KEEPALIVE")
+	timeout string = os.Getenv("SOCKET_PROXY_TIMEOUT")
+	uid string = os.Getenv("SOCKET_PROXY_UID")
+	gid string = os.Getenv("SOCKET_PROXY_GID")
+	volume string = os.Getenv("SOCKET_PROXY_VOLUME")
+	dockerSocket string = os.Getenv("SOCKET_PROXY_DOCKER_SOCKET")
 )
-
-func signals(){
-	signalChannel := make(chan os.Signal, 1)
-	signal.Notify(signalChannel, os.Interrupt, syscall.SIGTERM, syscall.SIGSTOP, syscall.SIGINT)
-	go func() {
-		<-signalChannel
-		os.Exit(0)
-	}()
-}
 
 func prepareFileSystemDropPrivileges(){
 	// unprivileged user
-	proxyUID, err := strconv.Atoi(os.Getenv("SOCKET_PROXY_UID"))
+	proxyUID, err := strconv.Atoi(uid)
 	if err != nil {
-		log.Fatalf("SOCKET_PROXY_UID must be a number %v", err)
+		Eleven.LogFatal("SOCKET_PROXY_UID must be a number %v", err)
 	}
-	proxyGID, err := strconv.Atoi(os.Getenv("SOCKET_PROXY_GID"))
+	proxyGID, err := strconv.Atoi(gid)
 	if err != nil {
-		log.Fatalf("SOCKET_PROXY_GID must be a number %v", err)
+		Eleven.LogFatal("SOCKET_PROXY_GID must be a number %v", err)
 	}
-	proxyVolume := regexp.MustCompile(`/+$`).ReplaceAllString(os.Getenv("SOCKET_PROXY_VOLUME"), "")
+	proxyVolume := regexp.MustCompile(`/+$`).ReplaceAllString(volume, "")
 
 	// chown file system for unprivileged user	
 	if err := os.Chown(proxyVolume, proxyUID , proxyGID); err != nil {
-		log.Fatalf("could not chown folder %s", proxyVolume, err)
+		Eleven.LogFatal("could not chown folder %s", proxyVolume, err)
 	}
 
 	// check docker socket permissions
-	stat, err := os.Stat(os.Getenv("SOCKET_PROXY_DOCKER_SOCKET"))
+	stat, err := os.Stat(dockerSocket)
 	if err != nil {
-		log.Fatalf("could not evaluate ownership of docker socket, permission issue %v", err)
+		Eleven.LogFatal("could not evaluate ownership of docker socket, permission issue %v", err)
 	}
 	if ownership, ok := stat.Sys().(*syscall.Stat_t); !ok {
-		log.Fatalf("could not evaluate ownership of docker socket, permission issue %v", err)
+		Eleven.LogFatal("could not evaluate ownership of docker socket, permission issue %v", err)
 	}else{
 		if(int(ownership.Uid) != os.Getuid()){
-			log.Fatalf("can’t access docker socket as UID %d owned by UID %d\nplease change the user setting in your compose to the correct UID/GID pair like this:\nservices:\n  socket-proxy:\n    user: \"%d:%d\"", os.Getuid(), ownership.Uid, ownership.Uid, ownership.Gid)
+			Eleven.LogFatal("can’t access docker socket as UID %d owned by UID %d. Please change the user setting in your compose to the correct UID/GID pair like this >> user: %d:%d", os.Getuid(), ownership.Uid, ownership.Uid, ownership.Gid)
 		}else{
 			if(int(ownership.Gid) != os.Getgid()){
-				log.Fatalf("can’t access docker socket as GID %d owned by GID %d\nplease change the user setting in your compose to the correct UID/GID pair like this:\nservices:\n  socket-proxy:\n    user: \"%d:%d\"", os.Getgid(), ownership.Gid, os.Getuid(), ownership.Gid)
+				Eleven.LogFatal("can’t access docker socket as GID %d owned by GID %d. Please change the user setting in your compose to the correct UID/GID pair like this >> user: %d:%d", os.Getgid(), ownership.Gid, os.Getuid(), ownership.Gid)
 			}
 		}
 	}
 
 	// drop privileges since only the proxy must access the socket as root and nothing else
 	if err := syscall.Setgid(proxyGID); err != nil {
-		log.Fatalf("could not set GID to %d %v", proxyGID, err)
+		Eleven.LogFatal("could not set GID to %d %v", proxyGID, err)
 	}
 
 	if err := syscall.Setuid(proxyUID); err != nil {
-		log.Fatalf("could not set UID to %d %v", proxyUID, err)
+		Eleven.LogFatal("could not set UID to %d %v", proxyUID, err)
 	}
 }
 
@@ -104,54 +101,62 @@ func httpProxy(w http.ResponseWriter, r *http.Request){
 	if((method  == "GET" || method  == "HEAD") && !httpProxyBlockedPaths(url)){
 		proxy.ServeHTTP(w, r)
 	}else{
-		log.Printf("blocked: %s %s", method, url)
+		Eleven.Log("INF", "blocked: %s %s", method, url)
 		http.Error(w, "", http.StatusForbidden)  
+	}
+}
+
+func healthcheck(exit bool){
+	healthcheckSockerDialer := &net.Dialer{Timeout: 2*time.Second}
+	socket, err := healthcheckSockerDialer.Dial("unix", socketProxy)
+	if err != nil {
+		os.Exit(1)
+	}
+	err = socket.Close()
+	if err != nil {
+		os.Exit(1)
+	}
+	if(exit){
+		os.Exit(0)
+	}else{
+		Eleven.Log("DBG", "health check successfully")
 	}
 }
 
 func main(){
 	// set socket proxy file path
-	socketProxy = regexp.MustCompile(`/+$`).ReplaceAllString(os.Getenv("SOCKET_PROXY_VOLUME"), "") + "/docker.sock"
+	socketProxy = regexp.MustCompile(`/+$`).ReplaceAllString(volume, "") + "/docker.sock"
 
-	// check for command line flags
-	healthCheckFlag := flag.Bool("healthcheck", false, "just run healthcheck")
-	flag.Parse()
-
-	if(*healthCheckFlag){
+	if(Eleven.Util.CommandLineArgumentExists("--healthcheck")){
 		// only run healthcheck
-		_, err := net.Dial("unix", socketProxy)
-		if err != nil {
-			os.Exit(1)
-		}
-		os.Exit(0)
+		healthcheck(true)
 	}else{
-		log.Println("starting socket-proxy v" + os.Getenv("APP_VERSION"))
+		// start app
+		Eleven.Log("START", "")
+
 		// setup signal handler
-		signals()
+		signalChannel := make(chan os.Signal, 1)
+		signal.Notify(signalChannel, os.Interrupt, syscall.SIGTERM, syscall.SIGSTOP, syscall.SIGINT)
+		go func(){
+			<-signalChannel
+			os.Exit(1)
+		}()
 
 		// setup proxy to docker socket as root
-		keepAlive, err := time.ParseDuration(os.Getenv("SOCKET_PROXY_KEEPALIVE"))
+		keepAlive, err := time.ParseDuration(keepAlive)
 		if err != nil {
-			log.Fatalf("%s not a valid time format: %s", os.Getenv("SOCKET_PROXY_KEEPALIVE"), err)
+			Eleven.LogFatal("%s not a valid time format: %s", keepAlive, err)
 		}
-		timeout, err := time.ParseDuration(os.Getenv("SOCKET_PROXY_TIMEOUT"))
+		timeout, err := time.ParseDuration(timeout)
 		if err != nil {
-			log.Fatalf("%s not a valid time format: %s", os.Getenv("SOCKET_PROXY_TIMEOUT"), err)
-		}
-		docketSockerDialer := &net.Dialer{KeepAlive: keepAlive, Timeout: timeout}
-		dockerSocket, err := docketSockerDialer.Dial("unix", os.Getenv("SOCKET_PROXY_DOCKER_SOCKET"))
-		if err != nil {
-			log.Fatalf("could not access docker socket %v", err)
+			Eleven.LogFatal("%s not a valid time format: %s", timeout, err)
 		}
 		localhost, _ := url.Parse("http://localhost")
 		proxy = httputil.NewSingleHostReverseProxy(localhost)
+		docketSockerDialer := &net.Dialer{KeepAlive: keepAlive, Timeout: timeout}
 		proxy.Transport = &http.Transport{
-			DialContext: func(_ context.Context, _, _ string)(net.Conn, error){
-				dockerSocket, err = docketSockerDialer.Dial("unix", os.Getenv("SOCKET_PROXY_DOCKER_SOCKET"))
-				if err != nil {
-					log.Fatalf("could not access docker socket %v", err)
-				}
-				return dockerSocket, err
+			DialContext:func(_ context.Context, _, _ string)(net.Conn, error){
+				return(docketSockerDialer.Dial("unix", dockerSocket))
 			},
 		}
 
@@ -165,14 +170,14 @@ func main(){
 		os.Remove(socketProxy)
 		unix, err := net.Listen("unix", socketProxy)
 		if err != nil {
-			log.Fatalf("could not start unix socket %v", err)
+			Eleven.LogFatal("could not start unix socket %v", err)
 		}
 		wg.Add(1)
 		go func(){
 			defer wg.Done()
-			log.Println("starting proxy UNIX socket ...")
+			Eleven.Log("INF", "starting proxy UNIX socket ...")
 			if err := unixServer.Serve(unix); err != nil {
-				log.Fatalf("could not start unix socket %v", err)
+				Eleven.LogFatal("could not start unix socket %v", err)
 			}
 		}()
 
@@ -183,14 +188,14 @@ func main(){
 
 		tcp, err := net.Listen("tcp", "0.0.0.0:2375")
 		if err != nil {
-			log.Fatalf("could not start tcp socket %v", err)
+			Eleven.LogFatal("could not start tcp socket %v", err)
 		}
 		wg.Add(1)
 		go func(){
 			defer wg.Done()
-			log.Println("starting proxy TCP socket ...")
+			Eleven.Log("INF", "starting proxy TCP socket ...")
 			if err := httpServer.Serve(tcp); err != nil {
-				log.Fatalf("could not start tcp socket %v", err)
+				Eleven.LogFatal("could not start tcp socket %v", err)
 			}
 		}()
 
@@ -198,18 +203,28 @@ func main(){
 		client := &http.Client{}
 		req, err := http.NewRequest(http.MethodGet, "http://localhost:2375/version", nil)
 		if err != nil {
-			log.Fatalf("could not create HTTP request %v", err)
+			Eleven.LogFatal("could not create HTTP request %v", err)
 		}
 		res, err := client.Do(req)
 		if err != nil {
-			log.Fatalf("could not proxy to docker socket %v", err)
+			Eleven.LogFatal("could not proxy to docker socket %v", err)
 		}
 		res.Body.Close()
 		if res.StatusCode != http.StatusOK {
-			log.Fatalf("could not proxy to docker socket %v", err)
+			Eleven.LogFatal("could not proxy to docker socket %v", err)
 		}
-		log.Println("proxy connection to docker socket established")
 
+		// set internal socket check
+		ticker := time.NewTicker(5 * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+				case <-ticker.C:
+					healthcheck(false)
+			}
+		}
+
+		// wait for socket to get stopped
 		wg.Wait()
 	}
 }
