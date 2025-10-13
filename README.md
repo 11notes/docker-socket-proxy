@@ -18,6 +18,16 @@ socket-proxy-1  |   socket-proxy:
 socket-proxy-1  |     user: "0:991"
 ```
 
+You find the list of all available Docker API endpoints [here](https://docs.docker.com/reference/api/engine/version/v1.51/). The following paths are still blocked, even though they are accesses only via GET:
+
+- [GET /containers/{id}/attach/ws](https://docs.docker.com/reference/api/engine/version/v1.51/#tag/Container/operation/ContainerAttachWebsocket)
+- [GET /containers/{id}/export](https://docs.docker.com/reference/api/engine/version/v1.51/#tag/Container/operation/ContainerExport)
+- [GET /containers/{id}/archive](https://docs.docker.com/reference/api/engine/version/v1.51/#tag/Container/operation/ContainerArchive)
+- [GET /secrets](https://docs.docker.com/reference/api/engine/version/v1.51/#tag/Secret/operation/SecretList)
+- [GET /configs](https://docs.docker.com/reference/api/engine/version/v1.51/#tag/Config)
+- [GET /swarm/unlockkey](https://docs.docker.com/reference/api/engine/version/v1.51/#tag/Swarm/operation/SwarmUnlockkey)
+- [GET /images/{name}/get](https://docs.docker.com/reference/api/engine/version/v1.51/#tag/Image/operation/ImageGet)
+
 # UNIQUE VALUE PROPOSITION 💶
 **Why should I run this image and not the other image(s) that already exist?** Good question! Because ...
 
@@ -233,4 +243,4 @@ docker pull quay.io/11notes/socket-proxy:2.1.4
 # ElevenNotes™️
 This image is provided to you at your own risk. Always make backups before updating an image to a different version. Check the [releases](https://github.com/11notes/docker-socket-proxy/releases) for breaking changes. If you have any problems with using this image simply raise an [issue](https://github.com/11notes/docker-socket-proxy/issues), thanks. If you have a question or inputs please create a new [discussion](https://github.com/11notes/docker-socket-proxy/discussions) instead of an issue. You can find all my other repositories on [github](https://github.com/11notes?tab=repositories).
 
-*created 07.08.2025, 08:25:43 (CET)*
+*created 12.08.2025, 08:20:27 (CET)*
