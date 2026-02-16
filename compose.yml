@@ -1,7 +1,7 @@
 name: "reverse-proxy"
 services:
   socket-proxy:
-    image: "11notes/socket-proxy:2.1.6"
+    image: "11notes/socket-proxy:2.1.7"
     read_only: true
     user: "0:0" 
     environment:
@@ -12,6 +12,8 @@ services:
     restart: "always"
 
   traefik:
+    # for more information about this image checkout:
+    # https://github.com/11notes/docker-traefik
     depends_on:
       socket-proxy:
         condition: "service_healthy"
@@ -104,7 +106,8 @@ services:
     restart: "always"
 
   errors:
-    # this image can be used to display a simple error message since Traefik can’t serve content
+    # for more information about this image checkout:
+    # https://github.com/11notes/docker-postgres
     image: "11notes/traefik:errors"
     read_only: true
     labels:
@@ -118,6 +121,8 @@ services:
 
   # example container
   nginx:
+    # for more information about this image checkout:
+    # https://github.com/11notes/docker-nginx
     image: "11notes/nginx:stable"
     read_only: true
     labels:
