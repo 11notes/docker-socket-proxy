@@ -1,8 +1,6 @@
 name: "reverse-proxy"
 services:
   socket-proxy:
-    # this image is used to expose the docker socket as read-only to traefik
-    # you can check https://github.com/11notes/docker-socket-proxy for all details
     image: "11notes/socket-proxy:2.1.6"
     read_only: true
     user: "0:0" 
