@@ -210,7 +210,7 @@ To find out how you can change the default UID/GID of this container image, cons
 | `SOCKET_PROXY_GID` | the GID used to run the proxy parts | 1000 |
 | `SOCKET_PROXY_KEEPALIVE` | connection keep alive interval to SOCKET_PROXY_DOCKER_SOCKET | 10s |
 | `SOCKET_PROXY_TIMEOUT` | connection max. timeout to SOCKET_PROXY_DOCKER_SOCKET | 30s |
-| `SOCKET_PROXY_HTTP_LISTEN_IP` | IP to listen on for HTTP socket | 127.0.0.1 |
+| `SOCKET_PROXY_HTTP_LISTEN_IP` | IP to listen on for HTTP socket | 0.0.0.0 |
 
 # MAIN TAGS 🏷️
 These are the main tags for the image. There is also a tag for each commit and its shorthand sha256 value.
@@ -248,4 +248,4 @@ docker pull quay.io/11notes/socket-proxy:2.1.7
 # ElevenNotes™️
 This image is provided to you at your own risk. Always make backups before updating an image to a different version. Check the [releases](https://github.com/11notes/docker-socket-proxy/releases) for breaking changes. If you have any problems with using this image simply raise an [issue](https://github.com/11notes/docker-socket-proxy/issues), thanks. If you have a question or inputs please create a new [discussion](https://github.com/11notes/docker-socket-proxy/discussions) instead of an issue. You can find all my other repositories on [github](https://github.com/11notes?tab=repositories).
 
-*created 16.02.2026, 10:19:47 (CET)*
+*created 17.02.2026, 08:02:14 (CET)*
