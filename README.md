@@ -1,7 +1,7 @@
-![banner](https://github.com/11notes/defaults/blob/main/static/img/banner.png?raw=true)
+![banner](https://raw.githubusercontent.com/11notes/static/refs/heads/main/img/banner/README.png)
 
 # SOCKET-PROXY
-![size](https://img.shields.io/docker/image-size/11notes/socket-proxy/2.1.6?color=0eb305)![5px](https://github.com/11notes/defaults/blob/main/static/img/transparent5x2px.png?raw=true)![version](https://img.shields.io/docker/v/11notes/socket-proxy/2.1.6?color=eb7a09)![5px](https://github.com/11notes/defaults/blob/main/static/img/transparent5x2px.png?raw=true)![pulls](https://img.shields.io/docker/pulls/11notes/socket-proxy?color=2b75d6)![5px](https://github.com/11notes/defaults/blob/main/static/img/transparent5x2px.png?raw=true)[<img src="https://img.shields.io/github/issues/11notes/docker-SOCKET-PROXY?color=7842f5">](https://github.com/11notes/docker-SOCKET-PROXY/issues)![5px](https://github.com/11notes/defaults/blob/main/static/img/transparent5x2px.png?raw=true)![swiss_made](https://img.shields.io/badge/Swiss_Made-FFFFFF?labelColor=FF0000&logo=data:image/svg%2bxml;base64,PHN2ZyB2ZXJzaW9uPSIxIiB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDMyIDMyIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgogIDxyZWN0IHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgZmlsbD0idHJhbnNwYXJlbnQiLz4KICA8cGF0aCBkPSJtMTMgNmg2djdoN3Y2aC03djdoLTZ2LTdoLTd2LTZoN3oiIGZpbGw9IiNmZmYiLz4KPC9zdmc+)
+![size](https://img.shields.io/badge/image_size-12MB-green?color=%2338ad2d)![5px](https://raw.githubusercontent.com/11notes/static/refs/heads/main/img/markdown/transparent5x2px.png)![pulls](https://img.shields.io/docker/pulls/11notes/socket-proxy?color=2b75d6)![5px](https://raw.githubusercontent.com/11notes/static/refs/heads/main/img/markdown/transparent5x2px.png)[<img src="https://img.shields.io/github/issues/11notes/docker-socket-proxy?color=7842f5">](https://github.com/11notes/docker-socket-proxy/issues)![5px](https://raw.githubusercontent.com/11notes/static/refs/heads/main/img/markdown/transparent5x2px.png)![swiss_made](https://img.shields.io/badge/Swiss_Made-FFFFFF?labelColor=FF0000&logo=data:image/svg%2bxml;base64,PHN2ZyB2ZXJzaW9uPSIxIiB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDMyIDMyIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgogIDxyZWN0IHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgZmlsbD0idHJhbnNwYXJlbnQiLz4KICA8cGF0aCBkPSJtMTMgNmg2djdoN3Y2aC03djdoLTZ2LTdoLTd2LTZoN3oiIGZpbGw9IiNmZmYiLz4KPC9zdmc+)
 
 Access your docker socket safely as read-only, rootless and distroless
 
@@ -48,9 +48,7 @@ If you value security, simplicity and optimizations to the extreme, then this im
 name: "reverse-proxy"
 services:
   socket-proxy:
-    # this image is used to expose the docker socket as read-only to traefik
-    # you can check https://github.com/11notes/docker-socket-proxy for all details
-    image: "11notes/socket-proxy:2.1.6"
+    image: "11notes/socket-proxy:2.1.7"
     read_only: true
     user: "0:0" 
     environment:
@@ -61,6 +59,8 @@ services:
     restart: "always"
 
   traefik:
+    # for more information about this image checkout:
+    # https://github.com/11notes/docker-traefik
     depends_on:
       socket-proxy:
         condition: "service_healthy"
@@ -153,7 +153,8 @@ services:
     restart: "always"
 
   errors:
-    # this image can be used to display a simple error message since Traefik can’t serve content
+    # for more information about this image checkout:
+    # https://github.com/11notes/docker-postgres
     image: "11notes/traefik:errors"
     read_only: true
     labels:
@@ -167,6 +168,8 @@ services:
 
   # example container
   nginx:
+    # for more information about this image checkout:
+    # https://github.com/11notes/docker-nginx
     image: "11notes/nginx:stable"
     read_only: true
     labels:
@@ -194,7 +197,7 @@ networks:
   backend:
     internal: true
 ```
-To find out how you can change the default UID/GID of this container image, consult the [how-to.changeUIDGID](https://github.com/11notes/RTFM/blob/main/linux/container/image/11notes/how-to.changeUIDGID.md#change-uidgid-the-correct-way) section of my [RTFM](https://github.com/11notes/RTFM)
+To find out how you can change the default UID/GID of this container image, consult the [RTFM](https://github.com/11notes/RTFM/blob/main/linux/container/image/11notes/how-to.changeUIDGID.md#change-uidgid-the-correct-way).
 
 # ENVIRONMENT 📝
 | Parameter | Value | Default |
@@ -207,26 +210,27 @@ To find out how you can change the default UID/GID of this container image, cons
 | `SOCKET_PROXY_GID` | the GID used to run the proxy parts | 1000 |
 | `SOCKET_PROXY_KEEPALIVE` | connection keep alive interval to SOCKET_PROXY_DOCKER_SOCKET | 10s |
 | `SOCKET_PROXY_TIMEOUT` | connection max. timeout to SOCKET_PROXY_DOCKER_SOCKET | 30s |
+| `SOCKET_PROXY_HTTP_LISTEN_IP` | IP to listen on for HTTP socket | 127.0.0.1 |
 
 # MAIN TAGS 🏷️
 These are the main tags for the image. There is also a tag for each commit and its shorthand sha256 value.
 
-* [2.1.6](https://hub.docker.com/r/11notes/socket-proxy/tags?name=2.1.6)
+* [2.1.7](https://hub.docker.com/r/11notes/socket-proxy/tags?name=2.1.7)
 
 ### There is no latest tag, what am I supposed to do about updates?
-It is of my opinion that the ```:latest``` tag is dangerous. Many times, I’ve introduced **breaking** changes to my images. This would have messed up everything for some people. If you don’t want to change the tag to the latest [semver](https://semver.org/), simply use the short versions of [semver](https://semver.org/). Instead of using ```:2.1.6``` you can use ```:2``` or ```:2.1```. Since on each new version these tags are updated to the latest version of the software, using them is identical to using ```:latest``` but at least fixed to a major or minor version.
+It is my opinion that the ```:latest``` tag is a bad habbit and should not be used at all. Many developers introduce **breaking changes** in new releases. This would messed up everything for people who use ```:latest```. If you don’t want to change the tag to the latest [semver](https://semver.org/), simply use the short versions of [semver](https://semver.org/). Instead of using ```:2.1.7``` you can use ```:2``` or ```:2.1```. Since on each new version these tags are updated to the latest version of the software, using them is identical to using ```:latest``` but at least fixed to a major or minor version. Which in theory should not introduce breaking changes.
 
 If you still insist on having the bleeding edge release of this app, simply use the ```:rolling``` tag, but be warned! You will get the latest version of the app instantly, regardless of breaking changes or security issues or what so ever. You do this at your own risk!
 
 # REGISTRIES ☁️
 ```
-docker pull 11notes/socket-proxy:2.1.6
-docker pull ghcr.io/11notes/socket-proxy:2.1.6
-docker pull quay.io/11notes/socket-proxy:2.1.6
+docker pull 11notes/socket-proxy:2.1.7
+docker pull ghcr.io/11notes/socket-proxy:2.1.7
+docker pull quay.io/11notes/socket-proxy:2.1.7
 ```
 
 # SOURCE 💾
-* [11notes/socket-proxy](https://github.com/11notes/docker-SOCKET-PROXY)
+* [11notes/socket-proxy](https://github.com/11notes/docker-socket-proxy)
 
 # PARENT IMAGE 🏛️
 > [!IMPORTANT]
@@ -244,4 +248,4 @@ docker pull quay.io/11notes/socket-proxy:2.1.6
 # ElevenNotes™️
 This image is provided to you at your own risk. Always make backups before updating an image to a different version. Check the [releases](https://github.com/11notes/docker-socket-proxy/releases) for breaking changes. If you have any problems with using this image simply raise an [issue](https://github.com/11notes/docker-socket-proxy/issues), thanks. If you have a question or inputs please create a new [discussion](https://github.com/11notes/docker-socket-proxy/discussions) instead of an issue. You can find all my other repositories on [github](https://github.com/11notes?tab=repositories).
 
-*created 23.10.2025, 00:16:19 (CET)*
+*created 16.02.2026, 10:19:47 (CET)*
