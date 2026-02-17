@@ -59,7 +59,7 @@
         SOCKET_PROXY_GID=${APP_GID} \
         SOCKET_PROXY_KEEPALIVE="10s" \
         SOCKET_PROXY_TIMEOUT="30s" \
-        SOCKET_PROXY_HTTP_LISTEN_IP="127.0.0.1"
+        SOCKET_PROXY_HTTP_LISTEN_IP="0.0.0.0"
 
   # :: multi-stage
     COPY --from=distroless / /
