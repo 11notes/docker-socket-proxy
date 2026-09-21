@@ -4,12 +4,21 @@ on:
     tags:
       - 'v*'
 jobs:
-  docker:
+  build:
     runs-on: ubuntu-latest
-    steps:   
-      - name: build docker image
-        uses: the-actions-org/workflow-dispatch@3133c5d135c7dbe4be4f9793872b6ef331b53bc7
+    steps:
+      - name: checkout tag
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          workflow: docker.yml
+          ref: ${{ github.ref_name }}
+
+      - name: build etc for tag push
+        uses: 11notes/actions/tag@v1 # v1
+
+      - name: build container images
+        uses: benc-uk/workflow-dispatch@7a027648b88c2413826b6ddd6c76114894dc5ec4 # v1.3.1
+        with:
+          workflow: org.build.yml
+          wait-for-completion: false
           token: "${{ secrets.REPOSITORY_TOKEN }}"
-          inputs: '{ "release":"true", "readme":"true" }'
+          inputs: '{ "ref":"${{ github.ref_name }}", "etc":"${{ env.ACTIONS_TAG_BASE64JSON }}" }'
