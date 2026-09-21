@@ -44,6 +44,7 @@ ${{ content_environment }}
 | `SOCKET_PROXY_KEEPALIVE` | connection keep alive interval to SOCKET_PROXY_DOCKER_SOCKET | 10s |
 | `SOCKET_PROXY_TIMEOUT` | connection max. timeout to SOCKET_PROXY_DOCKER_SOCKET | 30s |
 | `SOCKET_PROXY_HTTP_LISTEN_IP` | IP to listen on for HTTP socket | 0.0.0.0 |
+| `SOCKET_PROXY_CONTAINERS_ONLY` | Allow start and stop of container |  |
 
 ${{ content_source }}
 

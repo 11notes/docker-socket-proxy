@@ -14,7 +14,7 @@ import(
 	"strconv"
 	"time"
 
-	"github.com/11notes/go/v2"
+	"github.com/11notes/go-eleven"
 )
 
 var(
@@ -29,7 +29,17 @@ var(
 	volume string = os.Getenv("SOCKET_PROXY_VOLUME")
 	dockerSocket string = os.Getenv("SOCKET_PROXY_DOCKER_SOCKET")
 	httpSocket string = os.Getenv("SOCKET_PROXY_HTTP_LISTEN_IP")
+	containersOnlyEnv string = os.Getenv("SOCKET_PROXY_CONTAINERS_ONLY")
+	containersOnly bool
+	containerActionPattern = regexp.MustCompile(`(?i)^/(v[0-9]+\.[0-9]+/)?containers/[^/]+/(start|stop)$`)
+	dockerReachable bool = true
 )
+
+func init(){
+	if v, err := strconv.ParseBool(containersOnlyEnv); err == nil{
+		containersOnly = v
+	}
+}
 
 func prepareFileSystemDropPrivileges(){
 	// unprivileged user
@@ -95,13 +105,22 @@ func httpProxyBlockedPaths(url string) bool {
 	return false
 }
 
+func httpProxyAllowed(method string, path string, fullURL string) bool{
+	// deny everything or only allow container start/stop
+	if containersOnly {
+		return method == http.MethodPost && containerActionPattern.MatchString(path)
+	}
+	return (method == http.MethodGet || method == http.MethodHead) && !httpProxyBlockedPaths(fullURL)
+}
+
 func httpProxy(w http.ResponseWriter, r *http.Request){
 	method := r.Method
-	url := r.URL.String()
-	if((method  == "GET" || method  == "HEAD") && !httpProxyBlockedPaths(url)){
+	fullURL := r.URL.String()
+	path := r.URL.Path
+	if httpProxyAllowed(method, path, fullURL){
 		proxy.ServeHTTP(w, r)
 	}else{
-		eleven.Log("INF", "blocked: %s %s", method, url)
+		eleven.Log("INF", "blocked: %s %s", method, fullURL)
 		http.Error(w, "", http.StatusForbidden)  
 	}
 }
@@ -123,6 +142,62 @@ func healthcheck(exit bool){
 	}
 }
 
+func dockerVersionRequest() *http.Request {
+	// docker API check
+	req, err := http.NewRequest(http.MethodGet, "http://127.0.0.1:2375/version", nil)
+	if err != nil {
+		eleven.LogFatal("could not create HTTP request %v", err)
+	}
+	return req
+}
+
+func waitForDockerSocket(client *http.Client){
+	// wait for docker socket ready status
+	backoff := 1 * time.Second
+	maxBackoff := 30 * time.Second
+	for {
+		res, err := client.Do(dockerVersionRequest())
+		if err == nil {
+			res.Body.Close()
+			if res.StatusCode == http.StatusOK {
+				eleven.Log("INF", "docker socket is reachable")
+				return
+			}
+			eleven.Log("WRN", "docker socket returned status %d, retrying in %s ...", res.StatusCode, backoff)
+		}else{
+			eleven.Log("WRN", "could not reach docker socket yet (%v), retrying in %s ...", err, backoff)
+		}
+		time.Sleep(backoff)
+		if backoff < maxBackoff {
+			backoff *= 2
+			if backoff > maxBackoff {
+				backoff = maxBackoff
+			}
+		}
+	}
+}
+
+func monitorDockerConnection(client *http.Client){
+	// monitor docker socket status
+	ticker := time.NewTicker(10 * time.Second)
+	defer ticker.Stop()
+	for range ticker.C {
+		res, err := client.Do(dockerVersionRequest())
+		reachable := err == nil && res != nil && res.StatusCode == http.StatusOK
+		if res != nil {
+			res.Body.Close()
+		}
+		if reachable != dockerReachable {
+			if reachable {
+				eleven.Log("INF", "docker socket is reachable again")
+			}else{
+				eleven.Log("WRN", "docker socket became unreachable (docker service restarting?), will keep retrying in the background")
+			}
+			dockerReachable = reachable
+		}
+	}
+}
+
 func main(){
 	// set socket proxy file path
 	socketProxy = regexp.MustCompile(`/+$`).ReplaceAllString(volume, "") + "/docker.sock"
@@ -133,6 +208,9 @@ func main(){
 	}else{
 		// start app
 		eleven.Log("START", "")
+		if(containersOnly){
+			eleven.Log("INF", "containers-only mode enabled: only starting/stopping containers is allowed")
+		}
 
 		// setup signal handler
 		signalChannel := make(chan os.Signal, 1)
@@ -158,6 +236,7 @@ func main(){
 			DialContext:func(_ context.Context, _, _ string)(net.Conn, error){
 				return(docketSockerDialer.Dial("unix", dockerSocket))
 			},
+			DisableKeepAlives:true,
 		}
 
 		// prepare the file system and drop privileges to UID/GID
@@ -199,20 +278,12 @@ func main(){
 			}
 		}()
 
-		// try to access the socket proxy
+		// wait for docker to be reachable
 		client := &http.Client{}
-		req, err := http.NewRequest(http.MethodGet, "http://127.0.0.1:2375/version", nil)
-		if err != nil {
-			eleven.LogFatal("could not create HTTP request %v", err)
-		}
-		res, err := client.Do(req)
-		if err != nil {
-			eleven.LogFatal("could not proxy to docker socket %v", err)
-		}
-		res.Body.Close()
-		if res.StatusCode != http.StatusOK {
-			eleven.LogFatal("could not proxy to docker socket %v", err)
-		}
+		waitForDockerSocket(client)
+
+		// keep watching docker connectivity
+		go monitorDockerConnection(client)
 
 		// set internal socket check
 		ticker := time.NewTicker(5 * time.Second)

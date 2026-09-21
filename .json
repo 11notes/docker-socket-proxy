@@ -2,9 +2,9 @@
   "image":"11notes/socket-proxy",
   "name":"socket-proxy",
   "root":"/",
-  
+
   "semver":{
-    "version":"2.1.7"
+    "version":"2.2.0"
   },
 
   "readme":{
