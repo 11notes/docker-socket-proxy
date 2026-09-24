@@ -125,7 +125,25 @@ func httpProxy(w http.ResponseWriter, r *http.Request){
 	}
 }
 
-func healthcheck(exit bool){
+func healthcheck(exit bool) {
+	// unprivileged user
+	proxyUID, err := strconv.Atoi(uid)
+	if err != nil {
+		eleven.LogFatal("SOCKET_PROXY_UID must be a number %v", err)
+	}
+	proxyGID, err := strconv.Atoi(gid)
+	if err != nil {
+		eleven.LogFatal("SOCKET_PROXY_GID must be a number %v", err)
+	}
+	
+	// Using a privileged user to access an unprivileged socket would require DAC_OVERRIDE
+	if err := syscall.Setgid(proxyGID); err != nil {
+		eleven.LogFatal("could not set GID to %d %v", proxyGID, err)
+	}
+	if err := syscall.Setuid(proxyUID); err != nil {
+		eleven.LogFatal("could not set UID to %d %v", proxyUID, err)
+	}
+
 	healthcheckSockerDialer := &net.Dialer{Timeout: 2*time.Second}
 	socket, err := healthcheckSockerDialer.Dial("unix", socketProxy)
 	if err != nil {
